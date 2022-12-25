@@ -1,0 +1,7 @@
+{
+	"XlsxPath": "",
+	"ExportPath": "../",
+	"ExportFlag": "lua",
+	"Namespace": "XLSX_%s",
+	"LuaTbls": {}
+}
