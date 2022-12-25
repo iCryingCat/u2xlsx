@@ -1,6 +1,7 @@
 ﻿using System.Text;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace GFramework.Xlsx
 {
@@ -12,7 +13,6 @@ namespace GFramework.Xlsx
         private string txt;
 
         public string Path { get => path; private set => path = value; }
-        public string Txt { get => txt; private set => txt = value; }
 
         public JsonStream(string path)
         {
@@ -24,7 +24,7 @@ namespace GFramework.Xlsx
         }
 
         //---- 读
-        private string Read()
+        public string Read()
         {
             return this.txt;
         }
@@ -32,11 +32,6 @@ namespace GFramework.Xlsx
         public T Read<T>()
         {
             return JsonConvert.DeserializeObject<T>(this.txt);
-        }
-
-        public Dictionary<T1, T2> ToMap<T1, T2>()
-        {
-            return JsonConvert.DeserializeObject<Dictionary<T1, T2>>(this.txt);
         }
 
         //---- 写
@@ -53,12 +48,6 @@ namespace GFramework.Xlsx
         public void WriteToEnd<T>(T obj)
         {
             string json = JsonConvert.SerializeObject(obj);
-            this.Write(json, this.stream.Length);
-        }
-
-        public void WriteToEnd<T1, T2>(Dictionary<T1, T2> keyMap)
-        {
-            string json = JsonConvert.SerializeObject(keyMap);
             this.Write(json, this.stream.Length);
         }
 

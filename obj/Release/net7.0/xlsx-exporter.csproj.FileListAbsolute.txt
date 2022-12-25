@@ -1,0 +1,5 @@
+E:\code\c#\xlsx-exporter\obj\Release\net7.0\xlsx-exporter.csproj.AssemblyReference.cache
+E:\code\c#\xlsx-exporter\obj\Release\net7.0\xlsx-exporter.GeneratedMSBuildEditorConfig.editorconfig
+E:\code\c#\xlsx-exporter\obj\Release\net7.0\xlsx-exporter.AssemblyInfoInputs.cache
+E:\code\c#\xlsx-exporter\obj\Release\net7.0\xlsx-exporter.AssemblyInfo.cs
+E:\code\c#\xlsx-exporter\obj\Release\net7.0\xlsx-exporter.csproj.CoreCompileInputs.cache

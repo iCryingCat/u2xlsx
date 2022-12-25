@@ -6,14 +6,13 @@ namespace GFramework.Xlsx
     {
         private StringBuilder body = new StringBuilder();
 
-        public override string ToString()
-        {
-            return this.body.ToString();
-        }
-
         public string ToLocalTbl(string tblName)
         {
-            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
+            StringBuilder luaTxt = new StringBuilder();
+            string localTbl = LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
+            luaTxt.AppendLine(localTbl);
+            luaTxt.AppendLine(LuaTemplate.RETURN.Format(tblName));
+            return luaTxt.ToString();
         }
 
         public void AddSubContent(string content)
@@ -23,7 +22,7 @@ namespace GFramework.Xlsx
 
         public void AddDesc(string desc)
         {
-            this.body.AppendLine();
+            this.body.AppendLine(LuaTemplate.DESC.Format(desc));
         }
 
         public void AddObjField(string key, string value)
@@ -36,16 +35,9 @@ namespace GFramework.Xlsx
             this.body.AppendLine(LuaTemplate.LIST_ITEM.Format(key, value));
         }
 
-        public static string ToLuaTable(string[] values)
+        public override string ToString()
         {
-            StringBuilder sb = new StringBuilder();
-            int itemNum = values.Length;
-            for (int i = 0; i < itemNum; ++i)
-            {
-                string value = values[i];
-                sb.AppendLine(value);
+            return this.body.ToString();
         }
-            return LuaTemplate.TABLE.Format(sb);
-        }
-}
+    }
 }

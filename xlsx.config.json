@@ -1,0 +1,17 @@
+{
+	"SourcePath": "./assets",
+	"ExportPath": "./data",
+	"ExportFlags": "lua",
+	"Namespace": "XLSX_{0}_{1}",
+	"XlsxNameSpaceFlag": "@",
+	"XlsxIgnoreFlag": "#",
+
+	"SheetIgnoreFlag": "#",
+	"SheetSepFlag": "-",
+
+	"LuaTypes": {
+		"Obj": "Obj",
+		"Enum": "Enum",
+		"Table": "Tbl"
+	}
+}

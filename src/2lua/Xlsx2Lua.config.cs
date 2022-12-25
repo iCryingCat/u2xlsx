@@ -12,7 +12,6 @@ namespace GFramework.Xlsx
         public const string String = "str";
         public const string ListNum = "list:num";
         public const string ListStr = "list:str";
-        public const string Table = "table";
         #endregion
     }
 }
