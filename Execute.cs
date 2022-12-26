@@ -21,7 +21,7 @@ namespace GFramework.Xlsx
 
             logger.P("导出路径：{0}".Format(exportPath));
             if (!Directory.Exists(exportPath))
-                throw new DirectoryNotFoundException(exportPath);
+                Directory.CreateDirectory(exportPath);
 
             string[] flags = cfg.ExportFlags.Split('|');
             foreach (string flag in flags)

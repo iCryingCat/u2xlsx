@@ -1,4 +1,4 @@
---[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]]--
+--[[ E:/code/c#/xlsx-exporter/bin/Release/net7.0/assets/测试@test.xlsx ]]--
 -- 测试lua数据表
 local ICITY = {
 -- 索引
