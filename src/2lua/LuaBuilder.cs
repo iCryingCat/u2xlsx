@@ -8,11 +8,7 @@ namespace GFramework.Xlsx
 
         public string ToLocalTbl(string tblName)
         {
-            StringBuilder luaTxt = new StringBuilder();
-            string localTbl = LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
-            luaTxt.AppendLine(localTbl);
-            luaTxt.AppendLine(LuaTemplate.RETURN.Format(tblName));
-            return luaTxt.ToString();
+            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
         }
 
         public string ToTbl()
@@ -20,9 +16,20 @@ namespace GFramework.Xlsx
             return LuaTemplate.TBL.Format(this.body);
         }
 
+        public string ExportPackage(string tblName)
+        {
+            return LuaTemplate.EXPORT_PACKAGE.Format(this.body, tblName);
+        }
+
         public void AddSubContent(string content)
         {
-            this.body.Append(content);
+            this.body.AppendLine(content);
+        }
+
+        public void PackLocalTbl(string tblName)
+        {
+            string localTbl = LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
+            this.body = new StringBuilder(localTbl);
         }
 
         public void AddDesc(string desc)

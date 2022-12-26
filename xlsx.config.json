@@ -5,13 +5,13 @@
 	"Namespace": "XLSX_{0}_{1}",
 	"XlsxNameSpaceFlag": "@",
 	"XlsxIgnoreFlag": "#",
-
 	"SheetIgnoreFlag": "#",
 	"SheetSepFlag": "-",
-
 	"LuaTypes": {
 		"Obj": "Obj",
 		"Enum": "Enum",
 		"Table": "Tbl"
-	}
+	},
+
+	"LuaDataModel": "I{0}"
 }

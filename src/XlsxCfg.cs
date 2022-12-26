@@ -10,6 +10,7 @@ namespace GFramework.Xlsx
         public string SheetSepFlag;
         public string XlsxIgnoreFlag;
         public string SheetIgnoreFlag;
+        public string LuaDataModel;
 
         public Dictionary<string, string> LuaTypes = new Dictionary<string, string>();
     }
