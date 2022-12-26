@@ -67,3 +67,6 @@
 -   **SheetSepFlag：sheet名类型分隔符**
 -   **LuaTypes：sheet名指定的lua类型**
 -   **LuaDataModel：导出lua数据表的表对象命名格式**
+
+## exe下载
+Release v1.0.1：https://github.com/iCryingCat/xlsx/releases/download/v1.0.1/xlsx.zip
