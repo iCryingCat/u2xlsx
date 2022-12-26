@@ -15,6 +15,11 @@ namespace GFramework.Xlsx
             return luaTxt.ToString();
         }
 
+        public string ToTbl()
+        {
+            return LuaTemplate.TBL.Format(this.body);
+        }
+
         public void AddSubContent(string content)
         {
             this.body.Append(content);

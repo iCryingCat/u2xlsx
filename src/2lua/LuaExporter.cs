@@ -192,72 +192,82 @@ namespace GFramework.Xlsx
         {
             foreach (var sheetGroup in this.tblSheetMap)
             {
-                int columnsNum = sheet.Columns.Count;
-                int rowsNum = sheet.Rows.Count;
-                if (rowsNum < 4) throw new Exception("表内容格式不正确！！！\n"
-                + "row1: 该表的描述说明\n" + "row2: 参数说明\n" + "row3: 参数类型\n" + "row3: 参数名\n");
-
-                string sheetName = sheet.TableName;
-                LuaBuilder luaBuilder = new LuaBuilder();
-                DataRow tblDesc = sheet.Rows[0];
-                luaBuilder.AddDesc(tblDesc[0].ToString());
-
-                DataRow fieldDesc;
-                DataRow fieldTypes;
-                DataRow fieldNames;
-                List<string> descList = new List<string>();
-                List<string> typeList = new List<string>();
-                List<string> nameList = new List<string>();
-
-                LuaBuilder objBuilder = new LuaBuilder();
-                LuaBuilder tblBuilder = new LuaBuilder();
-
-                fieldDesc = sheet.Rows[1];
-                fieldTypes = sheet.Rows[2];
-                fieldNames = sheet.Rows[3];
-                for (int i = 0; i < columnsNum; ++i)
+                string nameSpace = sheetGroup.Key;
+                string exportPath = XlsxExporter.Instance.cfg.ExportPath;
+                string dirPath = Path.Combine(exportPath, nameSpace).PathFormat();
+                var curDir = Directory.CreateDirectory(dirPath);
+                foreach (var sheet in sheetGroup.Value)
                 {
-                    string desc = fieldDesc.IsNull(i) ? string.Empty : fieldDesc[i].ToString();
-                    string typeName = fieldTypes.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段类型: {0}".Format(sheet.TableName)) : fieldTypes[i].ToString();
-                    string fieldName = fieldNames.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段名: {0}".Format(sheet.TableName)) : fieldNames[i].ToString();
-                    descList.Add(desc);
-                    typeList.Add(typeName);
-                    nameList.Add(fieldName);
-                    objBuilder.AddObjField(fieldName, i.ToString());
-                }
+                    int columnsNum = sheet.Columns.Count;
+                    int rowsNum = sheet.Rows.Count;
+                    if (rowsNum < 4) throw new Exception("表内容格式不正确！！！\n"
+                    + "row1: 该表的描述说明\n" + "row2: 参数说明\n" + "row3: 参数类型\n" + "row3: 参数名\n");
 
-                luaBuilder.AddSubContent(objBuilder.ToLocalTbl(tableName));
+                    string tblName = sheet.TableName.TrimPrefix(XlsxExporter.Instance.cfg.SheetSepFlag);
+                    string luaPath = Path.Combine(curDir.FullName, tblName + ".lua").PathFormat();
 
-                for (int i = 4, enumIndex = 0; i < rowsNum; ++i, ++enumIndex)
-                {
-                    DataRow row = sheet.Rows[i];
-                    string key = row[0].ToString();
+                    LuaBuilder luaBuilder = new LuaBuilder();
+                    string tblDesc = sheet.Rows[0].ToString();
+                    luaBuilder.AddDesc(tblDesc);
 
-                    List<string> rowValues = new List<string>();
-                    for (int j = 1; j < columnsNum; ++j)
+                    DataRow fieldDesc;
+                    DataRow fieldTypes;
+                    DataRow fieldNames;
+                    List<string> descList = new List<string>();
+                    List<string> typeList = new List<string>();
+                    List<string> nameList = new List<string>();
+
+                    LuaBuilder objBuilder = new LuaBuilder();
+                    LuaBuilder tblBuilder = new LuaBuilder();
+
+                    fieldDesc = sheet.Rows[1];
+                    fieldTypes = sheet.Rows[2];
+                    fieldNames = sheet.Rows[3];
+                    for (int i = 0; i < columnsNum; ++i)
                     {
-                        string cellType = typeList[j];
-                        string cellValue = row[j].ToString();
-                        cellValue = ToLuaData(cellType, cellValue);
-                        rowValues.Add(cellValue);
+                        string desc = fieldDesc.IsNull(i) ? string.Empty : fieldDesc[i].ToString();
+                        string typeName = fieldTypes.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段类型: {0}".Format(sheet.TableName)) : fieldTypes[i].ToString();
+                        string fieldName = fieldNames.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段名: {0}".Format(sheet.TableName)) : fieldNames[i].ToString();
+                        descList.Add(desc);
+                        typeList.Add(typeName);
+                        nameList.Add(fieldName);
+                        objBuilder.AddObjField(fieldName, i.ToString());
                     }
-                    string tblItemKey = row[0].ToString();
-                    string tblItemValue = LuaBuilder.ToLuaTable(rowValues.ToArray());
-                    tblBuilder.AddListItem(tblItemKey, tblItemValue);
-                    break;
-                }
 
-                string txt = luaBuilder.ToString();
-                using (FileStream fs = new FileStream(luaPath, FileMode.OpenOrCreate, FileAccess.Write))
-                {
-                    byte[] bytes = Encoding.UTF8.GetBytes(luaTxt);
-                    fs.Position = 0;
-                    fs.Write(bytes, 0, bytes.Length);
-                    logger.P("写入字节{0}...".Format(bytes.Length));
+                    luaBuilder.AddSubContent(objBuilder.ToLocalTbl(tableName));
+
+                    LuaBuilder dataBuilder = new LuaBuilder();
+                    for (int i = 4, enumIndex = 0; i < rowsNum; ++i, ++enumIndex)
+                    {
+                        LuaBuilder itemBuilder = new LuaBuilder();
+                        DataRow row = sheet.Rows[i];
+                        string key = row[0].ToString();
+
+                        for (int j = 1; j < columnsNum; ++j)
+                        {
+                            string cellType = typeList[j];
+                            string cellValue = row[j].ToString();
+                            cellValue = ToLuaData(cellType, cellValue);
+                            itemBuilder.AddObjField(nameList[j], cellValue);
+                        }
+
+                        dataBuilder.AddListItem(tblItemKey, itemBuilder.ToTbl());
+                        break;
+                    }
+
+                    dataBuilder.ToLocalTbl(tblName);
+                    luaBuilder.AddSubContent(dataBuilder);
+                    string txt = luaBuilder.ToString();
+                    using (FileStream fs = new FileStream(luaPath, FileMode.OpenOrCreate, FileAccess.Write))
+                    {
+                        byte[] bytes = Encoding.UTF8.GetBytes(luaTxt);
+                        fs.Position = 0;
+                        fs.Write(bytes, 0, bytes.Length);
+                        logger.P("写入字节{0}...".Format(bytes.Length));
+                    }
+                    logger.P("导出完成{0}...".Format(luaPath));
                 }
-                logger.P("导出完成{0}...".Format(luaPath));
             }
-
         }
     }
 
@@ -280,5 +290,4 @@ namespace GFramework.Xlsx
         }
         return cellValue;
     }
-}
 }
