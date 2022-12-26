@@ -6,32 +6,6 @@ namespace GFramework.Xlsx
     {
         private StringBuilder body = new StringBuilder();
 
-        public string ToLocalTbl(string tblName)
-        {
-            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
-        }
-
-        public string ToTbl()
-        {
-            return LuaTemplate.TBL.Format(this.body);
-        }
-
-        public string ExportPackage(string tblName)
-        {
-            return LuaTemplate.EXPORT_PACKAGE.Format(this.body, tblName);
-        }
-
-        public void AddSubContent(string content)
-        {
-            this.body.AppendLine(content);
-        }
-
-        public void PackLocalTbl(string tblName)
-        {
-            string localTbl = LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
-            this.body = new StringBuilder(localTbl);
-        }
-
         public void AddDesc(string desc)
         {
             this.body.AppendLine(LuaTemplate.DESC.Format(desc));
@@ -45,6 +19,41 @@ namespace GFramework.Xlsx
         public void AddListItem(string key, string value)
         {
             this.body.AppendLine(LuaTemplate.LIST_ITEM.Format(key, value));
+        }
+
+        public string ToTbl()
+        {
+            return LuaTemplate.TBL.Format(this.body);
+        }
+
+        public string ToLocalTbl(string tblName)
+        {
+            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
+        }
+
+        public static string Package(string packageName, string packageBody)
+        {
+            return LuaTemplate.EXPORT_PACKAGE.Format(packageBody, packageName);
+        }
+
+        public void AddSubBody(string content)
+        {
+            this.body.AppendLine(content);
+        }
+
+        public static string ToDesc(string desc)
+        {
+            return LuaTemplate.DESC.Format(desc).Endl();
+        }
+
+        public static string ToMultiDesc(string desc)
+        {
+            return LuaTemplate.MultiDESC.Format(desc).Endl();
+        }
+
+        public static string ToLocalTbl(string tblName, string tblBody)
+        {
+            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, tblBody);
         }
 
         public override string ToString()

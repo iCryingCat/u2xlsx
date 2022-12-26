@@ -8,6 +8,7 @@ namespace GFramework.Xlsx
     public class LuaTemplate
     {
         public const string DESC = "-- {0}";
+        internal static string MultiDESC = "--[[ {0} ]]--";
         public const string NIL = "nil";
         public const string OBJ = "{0}";
         public const string TBL = "{{\n{0}}}";
