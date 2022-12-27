@@ -506,8 +506,7 @@ namespace GFramework.Xlsx
                         var match = Regex.Match(cellType, XlsxExporter.Instance.cfg.SubTblRegex);
                         string subTblNameSpace = match.Groups[1].Value.ToString().Trim();
                         string subTblName = match.Groups[2].Value.ToString().Trim();
-                        string subReplaceIndex = "{0}::{1}::{2}".Format(subTblNameSpace, subTblName, dataIndex);
-                        cellValue = LuaBuilder.ToTbl(subReplaceIndex);
+                        cellValue = "{0}::{1}::{2}".Format(subTblNameSpace, subTblName, dataIndex);
                     }
                     else
                     {

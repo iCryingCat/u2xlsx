@@ -15,20 +15,16 @@ local XLSX_TEST_CITY = {
         cityName = '广州',
         gdp = 1000,
         sub = {
-            {
-                cityName = 'guangzhou',
-                gdp = 1000,
-            }
+            cityName = 'guangzhou',
+            gdp = 1000,
         },
     },
     [t2] = {
         cityName = '上海',
         gdp = 1200.3,
         sub = {
-            {
-                cityName = 'tianjing',
-                gdp = 1200.3,
-            }
+            cityName = 'tianjing',
+            gdp = 1200.3,
         },
     },
 }

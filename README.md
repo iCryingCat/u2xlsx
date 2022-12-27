@@ -17,6 +17,7 @@
 **3. list-num 数组**
 
 **4. list-str 数组**
+**5. namespace::tblName 内嵌表 值为目标数据表的索引**
 
 ## excel规范
 
@@ -41,7 +42,9 @@
 
 ![image-20221227000425404](./assets/image-20221227000425404.png)
 
-![image-20221227000347763](./assets/image-20221227000347763.png)
+![image-20221228005602921](./assets/image-20221228005602921.png)
+
+![image-20221228005626628](./assets/image-20221228005626628.png)
 
 ![image-20221227000401472](./assets/image-20221227000401472.png)
 
@@ -59,7 +62,7 @@ local XLSX_TEST_USER = {
 return XLSX_TEST_USER
 ```
 
-### E:\code\c#\xlsx-exporter\data\test\city.lua
+E:\code\c#\xlsx-exporter\data\test\food.lua
 
 ```lua
 --[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
@@ -73,7 +76,35 @@ local XLSX_TEST_FOOD = {
 return XLSX_TEST_FOOD
 ```
 
-### E:\code\c#\xlsx-exporter\data\test\food.lua
+E:\code\c#\xlsx-exporter\data\test\sub.lua
+
+```lua
+--[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
+-- 内嵌表
+local ISUB = {
+    -- 索引
+    xid = 0,
+    -- 城市名
+    cityName = 1,
+    -- gdp
+    gdp = 2,
+}
+local XLSX_TEST_SUB = {
+    [1] = {
+        cityName = 'guangzhou',
+        gdp = 1000,
+    },
+    [2] = {
+        cityName = 'tianjing',
+        gdp = 1200.3,
+    },
+}
+
+return XLSX_TEST_SUB
+
+```
+
+### E:\code\c#\xlsx-exporter\data\test\city.lua
 
 ```lua
 --[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
@@ -85,15 +116,25 @@ local ICITY = {
     cityName = 1,
     -- gdp
     gdp = 2,
+    -- 内嵌表测试
+    sub = 3,
 }
 local XLSX_TEST_CITY = {
-    [1] = {
+    [t1] = {
         cityName = '广州',
         gdp = 1000,
+        sub = {
+            cityName = 'guangzhou',
+            gdp = 1000,
+        },
     },
-    [2] = {
+    [t2] = {
         cityName = '上海',
         gdp = 1200.3,
+        sub = {
+            cityName = 'tianjing',
+            gdp = 1200.3,
+        },
     },
 }
 
