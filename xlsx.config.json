@@ -3,10 +3,13 @@
 	"ExportPath": "./data",
 	"ExportFlags": "lua",
 	"Namespace": "XLSX_{0}_{1}",
+	"LuaDefaultNameSpace": "global",
 	"XlsxNameSpaceFlag": "@",
 	"XlsxIgnoreFlag": "#",
 	"SheetIgnoreFlag": "#",
 	"SheetSepFlag": "-",
+	"ListSepFlag": "|",
+	"SubTblRegex": "(.*)::(.*)",
 	"LuaTypes": {
 		"Obj": "Obj",
 		"Enum": "Enum",

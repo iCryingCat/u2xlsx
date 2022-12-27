@@ -2,6 +2,7 @@
 using System.Data;
 using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
+using System.Text.RegularExpressions;
 
 namespace GFramework.Xlsx
 {
@@ -10,6 +11,14 @@ namespace GFramework.Xlsx
         private static GLogger logger = new GLogger("Execute");
 
         public static void Main(string[] args)
+        {
+            ExecuteExport();
+            logger.P("所有文件导出完成！！！");
+            logger.P("按任意键关闭！！！");
+            Console.ReadLine();
+        }
+
+        private static void ExecuteExport()
         {
             XlsxCfg cfg = XlsxExporter.Instance.LoadCfg();
 
@@ -34,9 +43,6 @@ namespace GFramework.Xlsx
                         break;
                 }
             }
-            logger.P("所有文件导出完成！！！");
-            logger.P("按任意键关闭！！！");
-            Console.ReadLine();
         }
     }
 }

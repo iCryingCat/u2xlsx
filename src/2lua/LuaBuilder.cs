@@ -21,9 +21,9 @@ namespace GFramework.Xlsx
             this.body.AppendLine(LuaTemplate.LIST_ITEM.Format(key, value));
         }
 
-        public string ToTbl()
+        public static string ToTbl(string body)
         {
-            return LuaTemplate.TBL.Format(this.body);
+            return LuaTemplate.TBL.Format(body);
         }
 
         public string ToLocalTbl(string tblName)

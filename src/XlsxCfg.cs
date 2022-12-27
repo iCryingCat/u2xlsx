@@ -11,6 +11,9 @@ namespace GFramework.Xlsx
         public string XlsxIgnoreFlag;
         public string SheetIgnoreFlag;
         public string LuaDataModel;
+        public string LuaDefaultNameSpace;
+        public string ListSepFlag;
+        public string SubTblRegex;
 
         public Dictionary<string, string> LuaTypes = new Dictionary<string, string>();
     }
