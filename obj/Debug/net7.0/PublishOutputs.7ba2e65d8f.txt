@@ -1,0 +1,8 @@
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\xlsx-exporter.exe
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\xlsx-exporter.dll
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\xlsx-exporter.deps.json
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\xlsx-exporter.runtimeconfig.json
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\xlsx-exporter.pdb
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\ExcelDataReader.dll
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\ExcelDataReader.DataSet.dll
+E:\code\c#\xlsx-exporter\bin\Debug\net7.0\publish\Newtonsoft.Json.dll
