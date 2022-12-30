@@ -1,5 +1,5 @@
 {
-	"SourcePath": "./assets",
+	"SourcePath": "./xlsx",
 	"ExportPath": "./data",
 	"ExportFlags": "lua",
 	"Namespace": "XLSX_{0}_{1}",
@@ -9,7 +9,7 @@
 	"SheetIgnoreFlag": "#",
 	"SheetSepFlag": "-",
 	"ListSepFlag": "|",
-	"SubTblRegex": "(.*)::(.*)",
+	"InlineTblRegex": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
 	"LuaTypes": {
 		"Obj": "Obj",
 		"Enum": "Enum",

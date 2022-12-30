@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Runtime.InteropServices;
 using System;
 using System.Data;
 using System.Text;
@@ -8,35 +10,117 @@ namespace GFramework.Xlsx
 {
     public class LuaDataModel
     {
-        // xlsx文件
+        // 原xlsx文件路径
         public string xlsx;
-        // lua
-        public string lua;
-        // lua对象类型
-        public string type;
+        // 导出lua文件路径
+        public string luaPath;
         // 命名空间
         public string nameSpace;
+        // lua对象类型
+        public string luaType;
+        //表名
+        public string tblName;
         // xlsx sheet
         public DataTable sheet;
-        //表明
-        public string tblName;
         // lua文本
         public string luaTxt;
+        // 数据表
+        public Dictionary<string, LuaTblData> tblDataMap;
+
+        public string ToLuaIndex()
+        {
+            return "{0}::{1}".Format(this.nameSpace, this.tblName);
+        }
     }
 
-    public class SubTbl
+    public class LuaTblData
     {
-        public string sourceNameSpace;
-        public string sourceTblName;
-        public string sourceDataIndex;
+        public Dictionary<string, KeyValuePair<string, string>> data = new Dictionary<string, KeyValuePair<string, string>>();
 
-        public string subNameSpace;
-        public string subTblName;
-        public string subDataIndex;
+        public LuaTblData()
+        {
+        }
+
+        public LuaTblData(Dictionary<string, KeyValuePair<string, string>> data)
+        {
+            this.data = data;
+        }
+
+        public override string ToString()
+        {
+            LuaBuilder itemBuilder = new LuaBuilder();
+            foreach (var (name, value) in this.data)
+            {
+                itemBuilder.AddObjField(name, value.Value);
+            }
+            return LuaBuilder.ToTbl(itemBuilder.ToString());
+        }
+    }
+
+    public class InlineTbl
+    {
+        public string nameSpace;
+        public string tblName;
+        public string dataIndex;
+
+        public InlineTbl(string nameSpace, string tblName, string dataIndex)
+        {
+            this.nameSpace = nameSpace;
+            this.tblName = tblName;
+            this.dataIndex = dataIndex;
+        }
+
+        public override string ToString()
+        {
+            return LuaExporter.InlineTblRegexFormat.Format(nameSpace, tblName, dataIndex);
+        }
+    }
+
+    public class SourceTbl
+    {
+        public string nameSpace;
+        public string tblName;
+        public string dataIndex;
+
+        public SourceTbl(string nameSpace, string tblName, string dataIndex)
+        {
+            this.nameSpace = nameSpace;
+            this.tblName = tblName;
+            this.dataIndex = dataIndex;
+        }
+
+        public SourceTbl(InlineTbl inlineTbl)
+        {
+            this.nameSpace = inlineTbl.nameSpace;
+            this.tblName = inlineTbl.tblName;
+            this.dataIndex = inlineTbl.dataIndex;
+        }
+
+        public override string ToString()
+        {
+            return LuaExporter.InlineTblRegexFormat.Format(nameSpace, tblName, dataIndex);
+        }
+    }
+
+    public class LinkData
+    {
+        public SourceTbl sourceTbl;
+        public InlineTbl inlineTbl;
+
+        public LinkData(SourceTbl sourceTbl, InlineTbl inlineTbl)
+        {
+            this.sourceTbl = sourceTbl;
+            this.inlineTbl = inlineTbl;
+        }
     }
 
     public class LuaExporter
     {
+        public const string InlineTblRegexFormat = "{0}::{1}::{2}";
+        public const string InlineTblBelongRegexFormat = "{0}::{1}";
+        public const string InlineTblRegex = "([.*?^[a-zA-Z_][a-zA-Z0-9_]*\\s*::\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*::\\s*[a-zA-Z0-9_]+)";
+        public const string InlineTblBelongRegex = "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z0-9_]+)";
+
         GLogger logger = new GLogger("LuaExporter");
 
         private List<string> xlsxs = new List<string>();
@@ -48,81 +132,84 @@ namespace GFramework.Xlsx
         // 命名空间、表名
         private Dictionary<string, Dictionary<string, LuaDataModel>> tblSheetMap = new Dictionary<string, Dictionary<string, LuaDataModel>>();
 
-        // 命名空间、表名、索引值、数据项
-        private Dictionary<string, Dictionary<string, Dictionary<string, string>>> luaTblMap = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
-
         // 内嵌表
-        private List<SubTbl> subTblList = new List<SubTbl>();
+        private Dictionary<string, LinkData> linkMap = new Dictionary<string, LinkData>();
 
         public void ExportToLua(string sourcePath, string exportPath)
+        {
+            this.FindAllXlsx(sourcePath);
+            this.OutputDataModelsForAllTypeOfLua();
+            this.OutputLuaTxt();
+            this.LinkInlineTbl();
+            this.WriteAllXlsxDataToLua();
+        }
+
+        private void FindAllXlsx(string sourcePath)
         {
             //----获取所有xlsx文件
             List<string> files = new List<string>();
             this.xlsxs = FileUtil.FindFilesByTypeWithDep(sourcePath, ".xlsx");
             logger.P("扫描到{0}个xlsx文件".Format(this.xlsxs.Count));
+        }
 
-            foreach (var xlsx in xlsxs)
+        private void OutputDataModelsForAllTypeOfLua()
+        {
+            foreach (var xlsx in this.xlsxs)
             {
                 //----忽略不需要导出文件
                 if (xlsx.IsPrefixWith(XlsxExporter.Instance.cfg.XlsxIgnoreFlag))
                     continue;
+
                 //----获取所有sheet
                 Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                 using (FileStream fs = new FileStream(xlsx, FileMode.Open))
                 {
-                    string xlsxName = xlsx.TrimSuffix(".");
-                    string nameSpace = xlsxName.Suffix(XlsxExporter.Instance.cfg.XlsxNameSpaceFlag);
-                    if (string.IsNullOrEmpty(nameSpace)) nameSpace = XlsxExporter.Instance.cfg.LuaDefaultNameSpace;
+                    string xlsxFileName = xlsx.GetCurFileName();
+                    string xlsxName = xlsxFileName.TrimSuffix(".");
+                    string nameSpace = xlsxName.Suffix(XlsxExporter.Instance.cfg.XlsxNameSpaceFlag).Trim();
+
+                    //----默认全局命名空间
+                    if (string.IsNullOrEmpty(nameSpace))
+                        nameSpace = XlsxExporter.Instance.cfg.LuaDefaultNameSpace;
+
                     var excelDataReader = ExcelReaderFactory.CreateOpenXmlReader(fs);
-                    var set = excelDataReader.AsDataSet().Tables;
-                    foreach (DataTable sheet in set)
+                    var sheetSet = excelDataReader.AsDataSet().Tables;
+                    foreach (DataTable sheet in sheetSet)
                     {
                         string sheetName = sheet.TableName;
-                        string tblName = sheetName.TrimPrefix(XlsxExporter.Instance.cfg.SheetSepFlag);
 
                         //----忽略不需要导出的表
                         if (sheetName.IsPrefixWith(XlsxExporter.Instance.cfg.SheetIgnoreFlag))
                             continue;
 
-                        string luaObj = XlsxExporter.Instance.cfg.LuaTypes["Obj"];
-                        string luaEnum = XlsxExporter.Instance.cfg.LuaTypes["Enum"];
-                        string luaTbl = XlsxExporter.Instance.cfg.LuaTypes["Table"];
-                        if (sheetName.IsPrefixWith(luaObj))
+                        var luaTblObj = sheetName.Split(XlsxExporter.Instance.cfg.SheetSepFlag);
+                        string luaType = luaTblObj[0].Trim();
+                        string tblName = luaTblObj[1].Trim();
+
+                        LuaDataModel dataTbl = new LuaDataModel();
+                        dataTbl.xlsx = xlsx;
+                        dataTbl.nameSpace = nameSpace;
+                        dataTbl.tblName = tblName;
+                        dataTbl.sheet = sheet;
+
+                        string typeLuaObj = XlsxExporter.Instance.cfg.LuaTypes["Obj"];
+                        string typeLuaEnum = XlsxExporter.Instance.cfg.LuaTypes["Enum"];
+                        string typeLuaTbl = XlsxExporter.Instance.cfg.LuaTypes["Table"];
+                        if (luaType == typeLuaObj)
                         {
-                            LuaDataModel dataTbl = new LuaDataModel()
-                            {
-                                xlsx = xlsx,
-                                type = luaObj,
-                                nameSpace = nameSpace,
-                                sheet = sheet,
-                                tblName = tblName,
-                            };
+                            dataTbl.luaType = typeLuaObj;
                             if (!this.objSheetMap.ContainsKey(nameSpace)) this.objSheetMap.Add(nameSpace, new Dictionary<string, LuaDataModel>());
                             this.objSheetMap[nameSpace][tblName] = dataTbl;
                         }
-                        else if (sheetName.IsPrefixWith(luaEnum))
+                        else if (luaType == typeLuaEnum)
                         {
-                            LuaDataModel dataTbl = new LuaDataModel()
-                            {
-                                xlsx = xlsx,
-                                type = luaObj,
-                                nameSpace = nameSpace,
-                                sheet = sheet,
-                                tblName = tblName,
-                            };
+                            dataTbl.luaType = typeLuaEnum;
                             if (!this.enumSheetMap.ContainsKey(nameSpace)) this.enumSheetMap.Add(nameSpace, new Dictionary<string, LuaDataModel>());
                             this.enumSheetMap[nameSpace][tblName] = dataTbl;
                         }
-                        else if (sheetName.IsPrefixWith(luaTbl))
+                        else if (luaType == typeLuaTbl)
                         {
-                            LuaDataModel dataTbl = new LuaDataModel()
-                            {
-                                xlsx = xlsx,
-                                type = luaObj,
-                                nameSpace = nameSpace,
-                                sheet = sheet,
-                                tblName = tblName,
-                            };
+                            dataTbl.luaType = typeLuaTbl;
                             if (!this.tblSheetMap.ContainsKey(nameSpace)) this.tblSheetMap.Add(nameSpace, new Dictionary<string, LuaDataModel>());
                             this.tblSheetMap[nameSpace][tblName] = dataTbl;
                         }
@@ -134,8 +221,6 @@ namespace GFramework.Xlsx
                     }
                 }
             }
-            OutputLuaTxt();
-            logger.P("导出lua完成！！！");
         }
 
         private void OutputLuaTxt()
@@ -143,7 +228,6 @@ namespace GFramework.Xlsx
             OutputLuaObj();
             OutputLuaEnum();
             OutputLuaTbl();
-            ReplaceSubTblData();
         }
 
         //-----生成lua 对象
@@ -151,9 +235,10 @@ namespace GFramework.Xlsx
         {
             foreach (var sheetGroup in this.objSheetMap)
             {
+                string nameSpace = sheetGroup.Key;
+
                 //----根据命名空间创建目录
                 string exportPath = XlsxExporter.Instance.cfg.ExportPath;
-                string nameSpace = sheetGroup.Key;
                 string dirPath = Path.Combine(exportPath, nameSpace).PathFormat();
                 var curDir = Directory.CreateDirectory(dirPath);
 
@@ -187,17 +272,17 @@ namespace GFramework.Xlsx
                         // TODO:格式检查
 
                         // 根据数据类型生成lua字段
-                        string fieldValue = ToLuaData(argType, argValue);
+                        var (cellType, cellValue) = ToLuaData(argType, argValue);
                         // 添加注释
                         luaBuilder.AddDesc(argDesc);
                         // 添加字段
-                        luaBuilder.AddObjField(argName, fieldValue);
+                        luaBuilder.AddObjField(argName, cellValue);
 
                     }
 
                     //----lua文件名格式
                     string luaPath = Path.Combine(curDir.FullName, tblName + ".lua").PathFormat();
-                    dataTbl.lua = luaPath;
+                    dataTbl.luaPath = luaPath;
 
                     //----lua导出包
                     string packageName = XlsxExporter.Instance.cfg.Namespace.Format(nameSpace.Upper(), tblName.Upper());
@@ -210,8 +295,7 @@ namespace GFramework.Xlsx
                     string luaTips = LuaBuilder.ToMultiDesc(dataTbl.xlsx);
                     dataTbl.luaTxt = luaTips + luaTxt;
 
-                    //----写入lua文件
-                    WriteToLua(dataTbl);
+                    this.objSheetMap[nameSpace][tblName] = dataTbl;
                 }
             }
         }
@@ -256,16 +340,16 @@ namespace GFramework.Xlsx
                         // TODO:格式检查
 
                         // 根据数据类型生成lua字段
-                        string fieldValue = ToLuaData(Xlsx2LuaConfig.Number, argValue);
+                        var (cellType, cellValue) = ToLuaData(Xlsx2LuaConfig.Number, argValue);
                         // 添加注释
                         luaBuilder.AddDesc(argDesc);
                         // 添加字段
-                        luaBuilder.AddObjField(argName, fieldValue);
+                        luaBuilder.AddObjField(argName, cellValue);
                     }
 
                     //----lua文件名
                     string lua = Path.Combine(curDir.FullName, tblName + ".lua").PathFormat();
-                    dataTbl.lua = lua;
+                    dataTbl.luaPath = lua;
 
                     //----lua导出包
                     string packageName = XlsxExporter.Instance.cfg.Namespace.Format(nameSpace.Upper(), tblName.Upper());
@@ -280,8 +364,7 @@ namespace GFramework.Xlsx
                     string luaTips = LuaBuilder.ToMultiDesc(dataTbl.xlsx);
                     dataTbl.luaTxt = luaTips + luaTxt;
 
-                    //----写入lua文件
-                    WriteToLua(dataTbl);
+                    this.enumSheetMap[nameSpace][tblName] = dataTbl;
                 }
             }
         }
@@ -302,6 +385,7 @@ namespace GFramework.Xlsx
                 foreach (var (tblName, dataTbl) in sheetMap)
                 {
                     var sheet = dataTbl.sheet;
+                    dataTbl.tblDataMap = new Dictionary<string, LuaTblData>();
 
                     //----检查表格式
                     int columnsNum = sheet.Columns.Count;
@@ -365,6 +449,7 @@ namespace GFramework.Xlsx
 
                         // 表索引
                         string key = row[0].ToString();
+                        dataTbl.tblDataMap[key] = new LuaTblData();
 
                         for (int j = 1; j < columnsNum; ++j)
                         {
@@ -372,48 +457,39 @@ namespace GFramework.Xlsx
                             string filedName = nameList[j];
                             // 字段类型
                             string cellType = typeList[j];
-
                             // 字段值
                             string cellValue = row[j].ToString();
 
                             //内嵌表
-                            bool isSub = Regex.IsMatch(cellType, XlsxExporter.Instance.cfg.SubTblRegex);
-                            if (isSub)
+                            bool isInline = Regex.IsMatch(cellType, XlsxExporter.Instance.cfg.InlineTblRegex);
+                            if (isInline)
                             {
-                                var match = Regex.Match(cellType, XlsxExporter.Instance.cfg.SubTblRegex);
-                                string subTblNameSpace = match.Groups[1].Value.ToString().Trim();
-                                string subTblName = match.Groups[2].Value.ToString().Trim();
-                                SubTbl subTbl = new SubTbl()
-                                {
-                                    subNameSpace = subTblNameSpace,
-                                    subTblName = subTblName,
-                                    subDataIndex = cellValue,
-                                    sourceNameSpace = nameSpace,
-                                    sourceTblName = tblName,
-                                    sourceDataIndex = key,
-                                };
-                                this.subTblList.Add(subTbl);
+                                var match = Regex.Match(cellType, XlsxExporter.Instance.cfg.InlineTblRegex);
+                                string inlineTblNameSpace = match.Groups[1].Value;
+                                string inlineTblName = match.Groups[2].Value;
+                                LinkData linkData = new LinkData(
+                                    new SourceTbl(nameSpace, tblName, key),
+                                    new InlineTbl(inlineTblNameSpace, inlineTblName, cellValue)
+                                );
+                                this.linkMap[linkData.sourceTbl.ToString()] = linkData;
+
                             }
 
-                            cellValue = ToLuaData(cellType, cellValue, cellValue);
+                            (cellType, cellValue) = ToLuaData(cellType, cellValue);
 
                             // 添加字段
                             itemBuilder.AddObjField(filedName, cellValue);
+                            dataTbl.tblDataMap[key].data[filedName] = new KeyValuePair<string, string>(cellType, cellValue);
                         }
 
                         string dataItem = LuaBuilder.ToTbl(itemBuilder.ToString());
-
                         // 添加数据项
                         dataBuilder.AddListItem(key, dataItem);
-                        if (!this.luaTblMap.ContainsKey(dataTbl.nameSpace)) this.luaTblMap.Add(dataTbl.nameSpace, new Dictionary<string, Dictionary<string, string>>());
-                        if (!this.luaTblMap[dataTbl.nameSpace].ContainsKey(dataTbl.tblName)) this.luaTblMap[dataTbl.nameSpace].Add(dataTbl.tblName, new Dictionary<string, string>());
-                        this.luaTblMap[dataTbl.nameSpace][dataTbl.tblName][key] = dataItem;
                     }
-
 
                     // lua 文件名
                     string lua = Path.Combine(curDir.FullName, tblName + ".lua").PathFormat();
-                    dataTbl.lua = lua;
+                    dataTbl.luaPath = lua;
 
                     //----lua导出包
                     string packageName = XlsxExporter.Instance.cfg.Namespace.Format(nameSpace.Upper(), tblName.Upper());
@@ -427,7 +503,7 @@ namespace GFramework.Xlsx
                     string luaTips = LuaBuilder.ToMultiDesc(dataTbl.xlsx);
                     dataTbl.luaTxt = luaTips + luaTxt;
 
-                    WriteToLua(dataTbl);
+                    this.tblSheetMap[nameSpace][tblName] = dataTbl;
                 }
             }
         }
@@ -435,28 +511,82 @@ namespace GFramework.Xlsx
         /// <summary>
         /// 替换内嵌表
         /// </summary>
-        private void ReplaceSubTblData()
+        private void LinkInlineTbl()
         {
-            foreach (var sub in this.subTblList)
+            foreach (var (key, linkData) in this.linkMap)
             {
-                string subNameSpace = sub.subNameSpace;
-                string subTblName = sub.subTblName;
-                string subDataIndex = sub.subDataIndex;
-                string subIndex = "{0}::{1}::{2}".Format(subNameSpace, subTblName, subDataIndex);
+                string inlineTxt = DepLinkInlineTbl(linkData, linkData);
+                var sourceTbl = linkData.sourceTbl;
+                string sourceNameSpace = sourceTbl.nameSpace;
+                string sourceTblName = sourceTbl.tblName;
+                var sourceDataModel = this.tblSheetMap[sourceNameSpace][sourceTblName];
+                string luaTxt = sourceDataModel.luaTxt;
+                var inlineTbl = linkData.inlineTbl;
+                string inlineTblIndex = inlineTbl.ToString();
 
-                string sourceNameSpace = sub.sourceNameSpace;
-                string sourceTblName = sub.sourceTblName;
-                string sourceDataIndex = sub.sourceDataIndex;
-                string data = this.luaTblMap[subNameSpace][subTblName][subDataIndex];
-
-                var dataModel = this.tblSheetMap[sourceNameSpace][sourceTblName];
-                string luaTxt = dataModel.luaTxt;
-                dataModel.luaTxt = luaTxt.Replace(subIndex, data);
-                WriteToLua(dataModel);
+                sourceDataModel.luaTxt = luaTxt.Replace(inlineTblIndex, inlineTxt);
+                WriteToLua(sourceDataModel);
             }
         }
 
-        private string ToLuaData(string cellType, string cellValue, string dataIndex = null)
+        private string DepLinkInlineTbl(LinkData rootData, LinkData linkData)
+        {
+            var sourceTbl = linkData.sourceTbl;
+            string sourceNameSpace = sourceTbl.nameSpace;
+            string sourceTblName = sourceTbl.tblName;
+            string sourceDataIndex = sourceTbl.dataIndex;
+            var sourceTblModel = this.tblSheetMap[sourceNameSpace][sourceTblName];
+            string luaTxt = sourceTblModel.luaTxt;
+
+            var inlineTbl = linkData.inlineTbl;
+            string inlineNameSpace = inlineTbl.nameSpace;
+            string inlineTblName = inlineTbl.tblName;
+            string inlineDataIndex = inlineTbl.dataIndex;
+            string inlineTblIndex = inlineTbl.ToString();
+
+            var inlineTblIndexData = this.tblSheetMap[inlineNameSpace][inlineTblName].tblDataMap[inlineDataIndex];
+            var inlineTblIndexDataTxt = inlineTblIndexData.ToString();
+
+            bool hasInline = Regex.IsMatch(inlineTblIndexDataTxt, InlineTblRegex);
+            if (hasInline)
+            {
+                var matchs = Regex.Matches(inlineTblIndexDataTxt, InlineTblRegex);
+                foreach (Match nextMatch in matchs)
+                {
+                    var nextInlineTblIndex = nextMatch.Groups[1].Value;
+                    var matchTblIndex3 = Regex.Match(nextInlineTblIndex, InlineTblBelongRegex);
+                    var nameSpace = matchTblIndex3.Groups[1].Value;
+                    var tblName = matchTblIndex3.Groups[2].Value;
+                    var dataIndex = matchTblIndex3.Groups[3].Value;
+
+                    var rootTbl = rootData.sourceTbl;
+                    //----循环嵌套
+                    if (nameSpace == rootTbl.nameSpace && tblName == rootTbl.tblName)
+                    {
+                        var tempTblData = new LuaTblData(inlineTblIndexData.data);
+                        for (int i = 0; i < tempTblData.data.Count; i++)
+                        {
+                            var tmp = tempTblData.data.ElementAt(i);
+                            if (tmp.Value.Key == InlineTblBelongRegexFormat.Format(nameSpace, tblName))
+                                tempTblData.data.Remove(tmp.Key);
+                        }
+                        inlineTblIndexDataTxt = tempTblData.ToString();
+                        continue;
+                    }
+
+                    var nextTbl = rootData.inlineTbl;
+                    LinkData inlineLinkData = new LinkData(
+                        new SourceTbl(inlineTbl),
+                        new InlineTbl(nameSpace, tblName, dataIndex)
+                    );
+                    string inlineTxt = DepLinkInlineTbl(rootData, inlineLinkData);
+                    inlineTblIndexDataTxt = inlineTblIndexDataTxt.Replace(nextInlineTblIndex, inlineTxt);
+                }
+            }
+            return inlineTblIndexDataTxt;
+        }
+
+        private (string, string) ToLuaData(string cellType, string cellValue)
         {
             cellType = cellType.Trim();
             switch (cellType)
@@ -500,35 +630,54 @@ namespace GFramework.Xlsx
                     cellValue = strList.ToString();
                     break;
                 default:
-                    bool isSub = Regex.IsMatch(cellType, XlsxExporter.Instance.cfg.SubTblRegex);
-                    if (isSub)
+                    bool isinline = Regex.IsMatch(cellType, XlsxExporter.Instance.cfg.InlineTblRegex);
+                    if (isinline)
                     {
-                        var match = Regex.Match(cellType, XlsxExporter.Instance.cfg.SubTblRegex);
-                        string subTblNameSpace = match.Groups[1].Value.ToString().Trim();
-                        string subTblName = match.Groups[2].Value.ToString().Trim();
-                        cellValue = "{0}::{1}::{2}".Format(subTblNameSpace, subTblName, dataIndex);
+                        var match = Regex.Match(cellType, XlsxExporter.Instance.cfg.InlineTblRegex);
+                        string inlineTblNameSpace = match.Groups[1].Value;
+                        string inlineTblName = match.Groups[2].Value;
+                        cellType = InlineTblBelongRegexFormat.Format(inlineTblNameSpace, inlineTblName);
+                        cellValue = InlineTblRegexFormat.Format(inlineTblNameSpace, inlineTblName, cellValue);
                     }
                     else
                     {
-                        cellValue = string.Empty;
+                        logger.E("配置表数据类型错误！！！");
                     }
                     break;
             }
-            return cellValue;
+            return (cellType, cellValue);
         }
 
-        private void WriteToLua(LuaDataModel dataTbl)
+        private void WriteAllXlsxDataToLua()
         {
-            string xlsx = dataTbl.xlsx;
-            string lua = dataTbl.lua;
-            string luaTxt = dataTbl.luaTxt;
+            foreach (var (nameSpace, modelMap) in this.objSheetMap)
+            {
+                foreach (var (tblName, model) in modelMap)
+                {
+                    WriteToLua(model);
+                }
+            }
+            foreach (var (nameSpace, modelMap) in this.enumSheetMap)
+            {
+                foreach (var (tblName, model) in modelMap)
+                {
+                    WriteToLua(model);
+                }
+            }
+        }
+
+        private void WriteToLua(LuaDataModel dataModel)
+        {
+            string xlsx = dataModel.xlsx;
+            string lua = dataModel.luaPath;
+            string luaTxt = dataModel.luaTxt;
             using (FileStream fs = new FileStream(lua, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 fs.SetLength(0);
                 byte[] luaData = Encoding.UTF8.GetBytes(luaTxt);
                 fs.Write(luaData);
             }
-            logger.P("导出完成{0}...".Format(dataTbl.lua));
+            logger.P("导出完成{0}...".Format(dataModel.luaPath));
         }
     }
 }

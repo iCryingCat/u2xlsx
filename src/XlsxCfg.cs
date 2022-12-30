@@ -13,7 +13,7 @@ namespace GFramework.Xlsx
         public string LuaDataModel;
         public string LuaDefaultNameSpace;
         public string ListSepFlag;
-        public string SubTblRegex;
+        public string InlineTblRegex;
 
         public Dictionary<string, string> LuaTypes = new Dictionary<string, string>();
     }
