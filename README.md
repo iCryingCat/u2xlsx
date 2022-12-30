@@ -40,105 +40,123 @@
 
 ### E:\code\c#\xlsx-exporter\assets\测试@test.xlsx
 
-![image-20221227000425404](./assets/image-20221227000425404.png)
+![image-20221231034515868](./assets/image-20221231034515868.png)
 
-![image-20221228005602921](./assets/image-20221228005602921.png)
+![image-20221231034337134](./assets/image-20221231034337134.png)
 
-![image-20221228005626628](./assets/image-20221228005626628.png)
+![image-20221231034406984](./assets/image-20221231034406984.png)
 
-![image-20221227000401472](./assets/image-20221227000401472.png)
+![image-20221231034459524](./assets/image-20221231034459524.png)
 
-### E:\code\c#\xlsx-exporter\data\test\user.lua
+### data\global\user.lua
 
 ```lua
---[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
+--[[ E:/code/c#/xlsx-exporter/xlsx/测试.xlsx ]] --
 -- 测试表
-local XLSX_TEST_USER = {
+local XLSX_GLOBAL_USER = {
     -- 昵称
     name = '白泽',
     -- 年龄
     age = 20,
 }
-return XLSX_TEST_USER
+return XLSX_GLOBAL_USER
+
 ```
 
-E:\code\c#\xlsx-exporter\data\test\food.lua
+### data\global\language.lua
 
 ```lua
---[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
+--[[ E:/code/c#/xlsx-exporter/xlsx/测试.xlsx ]] --
 -- 测试lua枚举
-local XLSX_TEST_FOOD = {
+local XLSX_GLOBAL_LANGUAGE = {
     -- 中文
     ZN = 1,
     -- 英语
     EN = 3,
 }
-return XLSX_TEST_FOOD
+return XLSX_GLOBAL_LANGUAGE
+
 ```
 
-E:\code\c#\xlsx-exporter\data\test\sub.lua
+### data\global\food.lua
 
 ```lua
---[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
+--[[ E:/code/c#/xlsx-exporter/xlsx/测试.xlsx ]] --
 -- 内嵌表
-local ISUB = {
+local IFOOD = {
     -- 索引
     xid = 0,
-    -- 城市名
-    cityName = 1,
-    -- gdp
-    gdp = 2,
+    -- 食物名
+    name = 1,
+    -- 类别
+    type = 2,
+    -- 关联城市
+    city = 3,
 }
-local XLSX_TEST_SUB = {
+local XLSX_GLOBAL_FOOD = {
     [1] = {
-        cityName = 'guangzhou',
-        gdp = 1000,
+        name = '煲仔饭',
+        type = '主食',
+        city = {
+            cityName = '广州',
+            province = '广东',
+        },
     },
     [2] = {
-        cityName = 'tianjing',
-        gdp = 1200.3,
+        name = '脐橙',
+        type = '水果',
+        city = {
+            cityName = '南昌',
+            province = '江西',
+        },
     },
 }
 
-return XLSX_TEST_SUB
+setmetatable(XLSX_GLOBAL_FOOD, {
+    __newindex = function(t, k, v)
+    end
+});
+
+return XLSX_GLOBAL_FOOD
 
 ```
 
-### E:\code\c#\xlsx-exporter\data\test\city.lua
+### data\global\city.lua
 
 ```lua
---[[ E:/code/c#/xlsx-exporter/assets/测试@test.xlsx ]] --
+--[[ E:/code/c#/xlsx-exporter/xlsx/测试.xlsx ]] --
 -- 测试lua数据表
 local ICITY = {
     -- 索引
     xid = 0,
     -- 城市名
     cityName = 1,
-    -- gdp
-    gdp = 2,
-    -- 内嵌表测试
-    sub = 3,
+    -- 省份
+    province = 2,
+    -- 特产
+    food = 3,
 }
-local XLSX_TEST_CITY = {
+local XLSX_GLOBAL_CITY = {
     [t1] = {
         cityName = '广州',
-        gdp = 1000,
-        sub = {
-            cityName = 'guangzhou',
-            gdp = 1000,
+        province = '广东',
+        food = {
+            name = '煲仔饭',
+            type = '主食',
         },
     },
     [t2] = {
-        cityName = '上海',
-        gdp = 1200.3,
-        sub = {
-            cityName = 'tianjing',
-            gdp = 1200.3,
+        cityName = '南昌',
+        province = '江西',
+        food = {
+            name = '脐橙',
+            type = '水果',
         },
     },
 }
 
-return XLSX_TEST_CITY
+return XLSX_GLOBAL_CITY
+
 ```
 
 
@@ -147,14 +165,17 @@ return XLSX_TEST_CITY
 
 ```json
 {
-	"SourcePath": "./assets", 
+	"SourcePath": "./xlsx",
 	"ExportPath": "./data",
 	"ExportFlags": "lua",
 	"Namespace": "XLSX_{0}_{1}",
+	"LuaDefaultNameSpace": "global",
 	"XlsxNameSpaceFlag": "@",
 	"XlsxIgnoreFlag": "#",
 	"SheetIgnoreFlag": "#",
 	"SheetSepFlag": "-",
+	"ListSepFlag": "|",
+	"InlineTblRegex": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
 	"LuaTypes": {
 		"Obj": "Obj",
 		"Enum": "Enum",
