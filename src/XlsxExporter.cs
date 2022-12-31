@@ -8,15 +8,15 @@ namespace GFramework.Xlsx
     /// </summary>
     public class XlsxExporter : Singleton<XlsxExporter>
     {
-        public XlsxCfg cfg = null;
+        public XlsxConfig cfg = null;
 
-        public XlsxCfg LoadCfg()
+        public XlsxConfig LoadConfig()
         {
             string curDir = Environment.CurrentDirectory;
             string cfgName = "xlsx.config.json";
             string cfgPath = Path.Combine(curDir, cfgName).Format();
             JsonStream js = new JsonStream(cfgPath);
-            var cfg = js.Read<XlsxCfg>();
+            var cfg = js.Read<XlsxConfig>();
             this.cfg = cfg;
             this.cfg.SourcePath = Path.GetFullPath(cfg.SourcePath).PathFormat();
             this.cfg.ExportPath = Path.GetFullPath(cfg.ExportPath).PathFormat();

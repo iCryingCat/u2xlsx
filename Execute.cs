@@ -20,7 +20,7 @@ namespace GFramework.Xlsx
 
         private static void ExecuteExport()
         {
-            XlsxCfg cfg = XlsxExporter.Instance.LoadCfg();
+            XlsxConfig cfg = XlsxExporter.Instance.LoadConfig();
 
             string sourcePath = cfg.SourcePath;
             string exportPath = cfg.ExportPath;

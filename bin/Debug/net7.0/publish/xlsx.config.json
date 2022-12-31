@@ -2,19 +2,20 @@
 	"SourcePath": "./xlsx",
 	"ExportPath": "./data",
 	"ExportFlags": "lua",
-	"Namespace": "XLSX_{0}_{1}",
-	"LuaDefaultNameSpace": "global",
-	"XlsxNameSpaceFlag": "@",
-	"XlsxIgnoreFlag": "#",
-	"SheetIgnoreFlag": "#",
-	"SheetSepFlag": "-",
-	"ListSepFlag": "|",
-	"InlineTblRegex": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
-	"LuaTypes": {
-		"Obj": "Obj",
-		"Enum": "Enum",
-		"Table": "Tbl"
-	},
-
-	"LuaDataModel": "I{0}"
+	"LuaConfig": {
+		"DataTableFormat": "XLSX_{0}_{1}",
+		"DataTableObjectFormat": "I{0}",
+		"LuaDefaultNameSpace": "global",
+		"NameSpaceRegex": "@\\s*([a-zA-Z_][a-zA-Z0-9_]*)?\\s*",
+		"IgnoreXlsxRegex": "#.*",
+		"IgnoreSheetRegex": "#.*",
+		"SheetRegex": "(Obj|Enum|Tbl)\\s*-\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
+		"LuaTypes": {
+			"Number": "num",
+			"String": "str",
+			"ListNumber": "list:num",
+			"ListString": "list:str",
+			"InlineTable": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)"
+		}
+	}
 }
