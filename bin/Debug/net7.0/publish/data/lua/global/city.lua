@@ -1,17 +1,22 @@
---[[ E:/code/c#/xlsx-exporter/bin/Debug/net7.0/publish/xlsx/C1-测试.xlsx ]] --
--- 测试lua数据表
+-- 测试.xlsx
+--[[
 local ICITY = {
-    -- 索引
-    xid = 0,
-    -- 城市名
-    cityName = 1,
-    -- 省份
-    province = 2,
-    -- 特产
-    food = 3,
+-- 索引
+id = 0,
+-- 城市名
+cityName = 1,
+-- 省份
+province = 2,
+-- 特产
+food = 3,
+-- 行政区
+regions = 4,
 }
+--]]
+
+-- 城市表
 local XLSX_GLOBAL_CITY = {
-    [t1] = {
+    ['t1'] = {
         cityName = '广州',
         province = '广东',
         food = {
@@ -24,8 +29,12 @@ local XLSX_GLOBAL_CITY = {
                 type = '水果',
             },
         },
+        regions = {
+            [0] = '天河区',
+            [1] = '海珠区',
+        },
     },
-    [t2] = {
+    ['t2'] = {
         cityName = '南昌',
         province = '江西',
         food = {
@@ -33,6 +42,10 @@ local XLSX_GLOBAL_CITY = {
                 name = '脐橙',
                 type = '水果',
             },
+        },
+        regions = {
+            [0] = '西湖区',
+            [1] = '新建区',
         },
     },
 }

@@ -1,5 +1,5 @@
---[[ E:/code/c#/xlsx-exporter/bin/Debug/net7.0/publish/xlsx/C1-测试.xlsx ]] --
--- 测试lua枚举
+-- 测试.xlsx
+-- 语言表
 local XLSX_GLOBAL_LANGUAGE = {
     -- 中文
     ZN = 1,

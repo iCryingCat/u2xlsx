@@ -1,5 +1,5 @@
---[[ E:/code/c#/xlsx-exporter/bin/Debug/net7.0/publish/xlsx/C1-测试.xlsx ]] --
--- 测试表
+-- 测试.xlsx
+-- 用户表
 local XLSX_GLOBAL_USER = {
     -- 昵称
     name = '白泽',
