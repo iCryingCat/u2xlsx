@@ -7,34 +7,36 @@ namespace GFramework.Xlsx
 {
     public class CSTemplate
     {
-        #region 注释
-        public const string Desc = "// {0}";
-        #endregion
+        public const string DESC = "// {0}\n";
 
-        #region 引用命名
-        public const string Using = "using {0};";
-        #endregion
+        public const string USING = "using {0};\n";
 
-        #region 命名空间
-        public const string Namespace = "namespace {0} {{\n{1}\n}}";
-        #endregion
+        public const string NAMESPACE = "namespace {0} \n{{\n{1}\n}}\n";
+
+        public const string NUM = "{0}";
+        public const string STR = "\"{0}\"";
+
+        public const string NULL = "null";
+        public const string FLOAT = "float";
+        public const string STRING = "string";
+        public const string LIST = "List<{0}>";
+        public const string NEW_LIST = "new List<{0}>() {{{1}}}";
+
+        public const string PROPERTY = "{0}.{1}";
 
         #region 类
-        public const string PublicClass = "public class {0} {{\n{1}\n}}";
-        public const string PublicClassWithExtends = "public class {0} : {1} {{\n{2}\n}}";
+        public const string CLASS = "public class {0} \n{{\n{1}\n}}\n";
+        public const string ENUM = "public enum {0} \n{{\n{1}\n}}\n";
+        public const string EXTENDS = "{0} : {1}";
         #endregion
 
         #region 字段
-        public const string PublicField = "public {0} {1};";
-        public const string PublicFieldWithValue = "public {0} {1} = {2};";
-        public const string ProtectedField = "protected {0} {1};";
-        public const string ProtectedFieldWithValue = "protected {0} {1} = {2};";
-        public const string PrivateField = "private {0} {1};";
-        public const string PrivateFieldWithValue = "private {0} {1} = {2};";
+        public const string FIELD = "public {0} {1} {{ get; set; }}\n";
+        public const string ENUM_ITEM = "{0} = {1},\n";
         #endregion
 
         #region 方法
-        public const string PublicFunction = "public {0} {1} {{\n{2}\n}}";
+        public const string FUNCTION = "public {0} {1} \n{{{2}\n}}\n";
         #endregion
     }
 }

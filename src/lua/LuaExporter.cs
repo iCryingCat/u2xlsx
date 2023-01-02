@@ -84,14 +84,14 @@ namespace GFramework.Xlsx
                     dataModel.export = luaPath;
 
                     //lua导出包
-                    string packageName = this.xlsxCfg.DataTableFormat.Format(nameSpace.Upper(), tblName.Upper());
-                    string luaData = luaBuilder.ToLocalTbl(packageName);
+                    string packageName = this.luaCfg.PackageFormat.Format(nameSpace.Upper(), tblName.Upper());
+                    string luaData = LuaBuilder.ToLocalTbl(packageName, luaBuilder.ToString());
                     // 添加表说明
-                    string luaTxt = LuaBuilder.Package(packageName, luaData);
+                    string luaTxt = LuaBuilder.Export(packageName, luaData);
 
                     string exportRootDir = this.luaCfg.ExportTo;
-                    string luaTips = LuaBuilder.ToDesc(dataModel.xlsx.TrimPrefix(exportRootDir));
-                    string tblDesc = LuaBuilder.ToDesc(dataModel.desc);
+                    string luaTips = LuaTemplate.DESC.Format(dataModel.xlsx.TrimPrefix(exportRootDir));
+                    string tblDesc = LuaTemplate.DESC.Format(dataModel.desc);
                     dataModel.txt = luaTips + tblDesc + luaTxt;
                 }
             }
@@ -135,14 +135,14 @@ namespace GFramework.Xlsx
                     dataModel.export = luaPath;
 
                     //lua导出包
-                    string packageName = this.xlsxCfg.DataTableFormat.Format(nameSpace.Upper(), tblName.Upper());
-                    string luaData = luaBuilder.ToLocalTbl(packageName);
+                    string packageName = this.luaCfg.PackageFormat.Format(nameSpace.Upper(), tblName.Upper());
+                    string luaData = LuaBuilder.ToLocalTbl(packageName, luaBuilder.ToString());
                     // 添加表说明
-                    string luaTxt = LuaBuilder.Package(packageName, luaData);
+                    string luaTxt = LuaBuilder.Export(packageName, luaData);
 
                     string exportRootDir = this.luaCfg.ExportTo;
-                    string luaTips = LuaBuilder.ToDesc(dataModel.xlsx.TrimPrefix(exportRootDir));
-                    string tblDesc = LuaBuilder.ToDesc(dataModel.desc);
+                    string luaTips = LuaTemplate.DESC.Format(dataModel.xlsx.TrimPrefix(exportRootDir));
+                    string tblDesc = LuaTemplate.DESC.Format(dataModel.desc);
                     dataModel.txt = luaTips + tblDesc + luaTxt;
                 }
             }
@@ -191,10 +191,10 @@ namespace GFramework.Xlsx
                     LuaBuilder luaBuilder = new LuaBuilder();
 
                     //添加表对象
-                    string dataModelName = this.xlsxCfg.DataTableObjectFormat.Format(tblName.Upper());
-                    string luaTblObj = objBuilder.ToLocalTbl(dataModelName);
+                    string dataModelName = this.luaCfg.PackageObjectFormat.Format(tblName.Upper());
+                    string luaTblObj = LuaBuilder.ToLocalTbl(dataModelName, objBuilder.ToString());
 
-                    luaBuilder.AddSubBody(LuaBuilder.ToMultiDesc(luaTblObj));
+                    luaBuilder.AddSubBody(LuaTemplate.MULTI_DESC.Format(luaTblObj));
 
                     //添加表说明
                     string tblDesc = dataModel.desc;
@@ -225,10 +225,10 @@ namespace GFramework.Xlsx
                             itemBuilder.AddObjField(filedName, fieldItem.fieldValue);
                         }
 
-                        string dataItem = LuaBuilder.ToTbl(itemBuilder.ToString());
+                        string dataItem = LuaTemplate.TBL.Format(itemBuilder.ToString());
                         // 添加数据项
-                        if (xid < 0) dataBuilder.AddListNumItem(index, dataItem);
-                        else dataBuilder.AddListNumItem(LuaTemplate.STR.Format(index), dataItem);
+                        if (xid < 0) dataBuilder.AddListItem(index, dataItem);
+                        else dataBuilder.AddListItem(LuaTemplate.STR.Format(index), dataItem);
                     }
 
                     // lua 文件名
@@ -236,16 +236,16 @@ namespace GFramework.Xlsx
                     dataModel.export = lua;
 
                     //lua导出包
-                    string packageName = this.xlsxCfg.DataTableFormat.Format(nameSpace.Upper(), tblName.Upper());
-                    string luaTblData = dataBuilder.ToLocalTbl(packageName);
+                    string packageName = this.luaCfg.PackageFormat.Format(nameSpace.Upper(), tblName.Upper());
+                    string luaTblData = LuaBuilder.ToLocalTbl(packageName, dataBuilder.ToString());
                     luaBuilder.AddSubBody(luaTblData);
 
                     string luaBody = luaBuilder.ToString();
-                    string luaTxt = LuaBuilder.Package(packageName, luaBody);
+                    string luaTxt = LuaBuilder.Export(packageName, luaBody);
 
                     //lua文件描述
                     string exportRootDir = this.luaCfg.ExportTo;
-                    string luaTips = LuaBuilder.ToDesc(dataModel.xlsx.TrimPrefix(exportRootDir));
+                    string luaTips = LuaTemplate.DESC.Format(dataModel.xlsx.TrimPrefix(exportRootDir));
                     dataModel.txt = luaTips + luaTxt;
                 }
             }
@@ -264,7 +264,7 @@ namespace GFramework.Xlsx
             else if (fieldType == xlsxTypes.String) fieldValue = LuaTemplate.STR.Format(fieldValue);
             else if (fieldType == xlsxTypes.ListNumber)
             {
-                var nums = fieldValue.Split(',');
+                var nums = fieldValue.Split(this.xlsxCfg.XlsxTypes.ListSeparator);
                 LuaBuilder numListBuilder = new LuaBuilder();
                 for (int i = 0; i < nums.Length; ++i)
                 {
@@ -274,13 +274,13 @@ namespace GFramework.Xlsx
                         logger.E("数值数组包含非法字符！！！");
                         continue;
                     }
-                    numListBuilder.AddListNumItem(i.ToString(), v);
+                    numListBuilder.AddListItem(i.ToString(), v);
                 }
-                fieldValue = LuaBuilder.ToTbl(numListBuilder.ToString());
+                fieldValue = LuaTemplate.TBL.Format(numListBuilder.ToString());
             }
             else if (fieldType == xlsxTypes.ListString)
             {
-                var strs = fieldValue.Split(',');
+                var strs = fieldValue.Split(this.xlsxCfg.XlsxTypes.ListSeparator);
                 LuaBuilder strListBuilder = new LuaBuilder();
                 for (int i = 0; i < strs.Length; ++i)
                 {
@@ -290,9 +290,9 @@ namespace GFramework.Xlsx
                         logger.E("字符串数组包含非法字符！！！");
                         continue;
                     }
-                    strListBuilder.AddListStrItem(i.ToString(), v);
+                    strListBuilder.AddListItem(i.ToString(), LuaTemplate.STR.Format(v));
                 }
-                fieldValue = LuaBuilder.ToTbl(strListBuilder.ToString());
+                fieldValue = LuaTemplate.TBL.Format(strListBuilder.ToString());
             }
             else if (fieldType == xlsxTypes.Xid) { }
             else if (Regex.IsMatch(fieldType, xlsxTypes.InlineTable))
@@ -347,7 +347,7 @@ namespace GFramework.Xlsx
             foreach (var index in inlineDataIndexList)
             {
                 var indexData = this.tblSheetMap[inlineNameSpace][inlineTblName].tblDataMap[index];
-                var indexDataTxt = LuaBuilder.ToTbl(indexData.data);
+                var indexDataTxt = LuaBuilder.PackageToTbl(indexData.data);
 
                 bool hasInline = Regex.IsMatch(indexDataTxt, XlsxExporter.InlineTblRegex);
                 if (hasInline)
@@ -373,7 +373,7 @@ namespace GFramework.Xlsx
                                 if (fieldType == XlsxExporter.InlineTblBelongRegexFormat.Format(nameSpace, tblName) || fieldType == this.xlsxCfg.XlsxTypes.Xid)
                                     tempTblData.data.Remove(tmp.Key);
                             }
-                            indexDataTxt = LuaBuilder.ToTbl(tempTblData.data);
+                            indexDataTxt = LuaBuilder.PackageToTbl(tempTblData.data);
                             continue;
                         }
 
@@ -386,9 +386,9 @@ namespace GFramework.Xlsx
                         indexDataTxt = indexDataTxt.Replace(dataIndex, inlineTxt);
                     }
                 }
-                inlineTblBuilder.AddListNumItem(index, indexDataTxt);
+                inlineTblBuilder.AddListItem(index, indexDataTxt);
             }
-            return LuaBuilder.ToTbl(inlineTblBuilder.ToString());
+            return LuaTemplate.TBL.Format(inlineTblBuilder.ToString());
         }
 
         private void WriteAllXlsxDataToLua()

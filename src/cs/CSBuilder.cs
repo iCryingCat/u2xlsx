@@ -4,64 +4,51 @@ namespace GFramework.Xlsx
 {
     public class CSBuilder
     {
-        public string Namespace;
-        public string desc = string.Empty;
-        private StringBuilder usingBody = new StringBuilder();
         private StringBuilder body = new StringBuilder();
-        private StringBuilder subBody = new StringBuilder();
 
-        public CSBuilder(string nameSpace)
+        public static string PackageNameSpace(string nameSpace, string content)
         {
-            this.Namespace = nameSpace;
+            return CSTemplate.NAMESPACE.Format(nameSpace, content);
         }
 
-        public override string ToString()
+        public static string PackageClass(string className, string content)
         {
-            string nameSpaceBody = CSTemplate.Namespace.Format(this.Namespace, this.body);
-            StringBuilder sb = new StringBuilder();
-            sb.Append(usingBody);
-            sb.AppendLine(CSTemplate.Desc.Format(this.desc));
-            sb.Append(nameSpaceBody);
-            return sb.ToString();
+            return CSTemplate.CLASS.Format(className, content);
         }
 
-        public void AddUsing(string Ns)
+        public static string PackageEnum(string enumName, string content)
         {
-            this.usingBody.AppendLine(CSTemplate.Using.Format(Ns));
+            return CSTemplate.ENUM.Format(enumName, content);
+        }
+
+        public void AddUsing(string nameSpace)
+        {
+            this.body.Append(CSTemplate.USING.Format(nameSpace));
         }
 
         public void AddDesc(string comment)
         {
-            this.subBody.AppendLine(CSTemplate.Desc.Format(comment));
+            this.body.Append(CSTemplate.DESC.Format(comment));
         }
 
-        public void AddSubClass(string typeName, string baseTypeName = null)
+        public void AddSubBody(string sub)
         {
-            string classBody = "";
-            if (null == baseTypeName)
-            {
-                classBody = CSTemplate.PublicClass.Format(typeName, this.subBody);
-            }
-            else
-            {
-                classBody = CSTemplate.PublicClassWithExtends.Format(typeName, baseTypeName, this.subBody);
-            }
-            this.body.Append(classBody);
-            this.subBody = new StringBuilder();
+            this.body.Append(sub);
         }
 
-        public void AddPublicField(string fieldType, string fieldName, string value = null)
+        public void AddField(string fieldType, string fieldName)
         {
-            string fieldBody = "";
-            if (null == value)
-            {
-                fieldBody = CSTemplate.PublicField.Format(fieldType, fieldName);
-            }
-            else
-            {
-                fieldBody = CSTemplate.PublicFieldWithValue.Format(fieldType, fieldName, value);
-            }
-            this.subBody.AppendLine(fieldBody);
+            this.body.Append(CSTemplate.FIELD.Format(fieldType, fieldName));
+        }
+
+        public void AddEnum(string fieldType, string fieldName)
+        {
+            this.body.Append(CSTemplate.ENUM_ITEM.Format(fieldType, fieldName));
+        }
+
+        public override string ToString()
+        {
+            return this.body.ToString();
         }
     }
 }

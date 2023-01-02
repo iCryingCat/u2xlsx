@@ -12,12 +12,10 @@ namespace GFramework.Xlsx
         public LuaConfig LuaConfig { get; set; }
         [JsonProperty("JsonConfig")]
         public JsonConfig JsonConfig { get; set; }
+        [JsonProperty("CSConfig")]
+        public CSConfig CSConfig { get; set; }
         [JsonProperty("XlsxTypeRegex")]
         public string XlsxTypeRegex { get; set; }
-        [JsonProperty("DataTableFormat")]
-        public string DataTableFormat { get; set; }
-        [JsonProperty("DataTableObjectFormat")]
-        public string DataTableObjectFormat { get; set; }
         [JsonProperty("LuaDefaultNameSpace")]
         public string LuaDefaultNameSpace { get; set; }
         [JsonProperty("NameSpaceRegex")]
@@ -38,6 +36,10 @@ namespace GFramework.Xlsx
         public string Externion { get; set; }
         [JsonProperty("DeclareJson")]
         public string DeclareJson { get; set; }
+        [JsonProperty("PackageFormat")]
+        public string PackageFormat { get; set; }
+        [JsonProperty("PackageObjectFormat")]
+        public string PackageObjectFormat { get; set; }
     }
 
     public class JsonConfig
@@ -46,6 +48,18 @@ namespace GFramework.Xlsx
         public string ExportTo { get; set; }
         [JsonProperty("Externion")]
         public string Externion { get; set; }
+        [JsonProperty("PackageFormat")]
+        public string PackageFormat { get; set; }
+    }
+
+    public class CSConfig
+    {
+        [JsonProperty("ExportTo")]
+        public string ExportTo { get; set; }
+        [JsonProperty("Externion")]
+        public string Externion { get; set; }
+        [JsonProperty("PackageFormat")]
+        public string PackageFormat { get; set; }
     }
 
     public class XlsxTypes

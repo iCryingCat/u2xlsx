@@ -19,7 +19,7 @@ namespace GFramework.Xlsx
         public XlsxConfig xlsxCfg = null;
         public JsonConfig jsonCfg = null;
 
-        public JsonExporter( Dictionary<string, Dictionary<string, XlsxDataModel>> objSheetMap, Dictionary<string, Dictionary<string, XlsxDataModel>> enumSheetMap, Dictionary<string, Dictionary<string, XlsxDataModel>> tblSheetMap, Dictionary<string, LinkData> linkMap, XlsxConfig xlsxCfg, JsonConfig jsonCfg)
+        public JsonExporter(Dictionary<string, Dictionary<string, XlsxDataModel>> objSheetMap, Dictionary<string, Dictionary<string, XlsxDataModel>> enumSheetMap, Dictionary<string, Dictionary<string, XlsxDataModel>> tblSheetMap, Dictionary<string, LinkData> linkMap, XlsxConfig xlsxCfg, JsonConfig jsonCfg)
         {
             this.objSheetMap = objSheetMap;
             this.enumSheetMap = enumSheetMap;
@@ -31,19 +31,19 @@ namespace GFramework.Xlsx
 
         public void ExportToJson()
         {
-            string luaPath = xlsxCfg.LuaConfig.ExportTo;
-            if (!Directory.Exists(luaPath))
-                Directory.CreateDirectory(luaPath);
-            logger.P("导出路径：{0}".Format(luaPath));
+            string jsonPath = jsonCfg.ExportTo;
+            if (!Directory.Exists(jsonPath))
+                Directory.CreateDirectory(jsonPath);
+            logger.P("导出路径：{0}".Format(jsonPath));
 
             this.OutputJsonObj();
             this.OutputJsonEnum();
             this.OutputJsonTbl();
             this.LinkInlineTbl();
-            this.WriteAllXlsxDataToLua();
+            this.WriteAllXlsxDataToJson();
         }
 
-        //生成lua 对象
+        //生成json 对象
         private void OutputJsonObj()
         {
             foreach (var nameSpace in this.objSheetMap.Keys)
@@ -68,29 +68,28 @@ namespace GFramework.Xlsx
                         string fieldValue = objData.fieldValue;    // 字段值
                         string fieldDesc = objData.fieldDesc;     // 字段表述
 
-                        // 根据数据类型生成lua字段
+                        // 根据数据类型生成json字段
                         fieldValue = ToJsonData(fieldType, fieldValue);
                         // 添加字段
                         jsonBuilder.AddObjField(fieldName, fieldValue);
                     }
 
-                    //lua文件名格式
+                    //json文件名格式
                     string jsonPath = Path.Combine(curDir.FullName, tblName + this.jsonCfg.Externion).PathFormat();
                     dataModel.export = jsonPath;
 
-                    //lua导出包
-                    string packageName = this.xlsxCfg.DataTableFormat.Format(nameSpace.Upper(), tblName.Upper());
-                    string luaData = JsonBuilder.ToLocalTbl(packageName, jsonBuilder.ToString());
+                    //json导出包
+                    string packageName = this.jsonCfg.PackageFormat.Format(nameSpace.Upper(), tblName.Upper());
+                    string jsonData = JsonBuilder.ToLocalTbl(packageName, jsonBuilder.ToString());
                     // 添加表说明
-                    string luaTxt = JsonBuilder.Package(luaData);
+                    string jsonTxt = JsonBuilder.Package(jsonData);
 
-                    string exportRootDir = this.jsonCfg.ExportTo;
-                    dataModel.txt = luaTxt;
+                    dataModel.txt = jsonTxt;
                 }
             }
         }
 
-        //生成lua 枚举
+        //生成json 枚举
         private void OutputJsonEnum()
         {
             foreach (var nameSpace in this.enumSheetMap.Keys)
@@ -115,29 +114,29 @@ namespace GFramework.Xlsx
                         string fieldValue = objData.fieldValue;    // 字段值
                         string fieldDesc = objData.fieldDesc;     // 字段表述
 
-                        // 根据数据类型生成lua字段
+                        // 根据数据类型生成json字段
                         fieldValue = ToJsonData(fieldType, fieldValue);
                         // 添加字段
                         jsonBuilder.AddObjField(fieldName, fieldValue);
                     }
 
-                    //lua文件名格式
-                    string luaPath = Path.Combine(curDir.FullName, tblName + this.jsonCfg.Externion).PathFormat();
-                    dataModel.export = luaPath;
+                    //json文件名格式
+                    string jsonPath = Path.Combine(curDir.FullName, tblName + this.jsonCfg.Externion).PathFormat();
+                    dataModel.export = jsonPath;
 
-                    //lua导出包
-                    string packageName = this.xlsxCfg.DataTableFormat.Format(nameSpace.Upper(), tblName.Upper());
-                    string luaData = JsonBuilder.ToLocalTbl(packageName, jsonBuilder.ToString());
+                    //json导出包
+                    string packageName = this.jsonCfg.PackageFormat.Format(nameSpace.Upper(), tblName.Upper());
+                    string jsonData = JsonBuilder.ToLocalTbl(packageName, jsonBuilder.ToString());
                     // 添加表说明
-                    string luaTxt = JsonBuilder.Package(luaData);
+                    string jsonTxt = JsonBuilder.Package(jsonData);
 
-                    string exportRootDir = this.jsonCfg.ExportTo;
-                    dataModel.txt = luaTxt;
+
+                    dataModel.txt = jsonTxt;
                 }
             }
         }
 
-        //生成lua 数据表
+        //生成json 数据表
         private void OutputJsonTbl()
         {
             foreach (var nameSpace in this.tblSheetMap.Keys)
@@ -153,9 +152,8 @@ namespace GFramework.Xlsx
                 {
                     var dataModel = tblMap[tblName];
                     var objDataList = dataModel.objDataList;
-                    string packageName = this.xlsxCfg.DataTableFormat.Format(nameSpace.Upper(), tblName.Upper());
+                    string packageName = this.jsonCfg.PackageFormat.Format(nameSpace.Upper(), tblName.Upper());
 
-                    JsonBuilder objBuilder = new JsonBuilder();
                     int xid = -1;
                     for (int i = 0; i < objDataList.Count; ++i)
                     {
@@ -169,14 +167,7 @@ namespace GFramework.Xlsx
                             xid = i;
                         }
                         if (objData.group != null) continue;
-                        objBuilder.AddObjField(fieldName, i.ToString());
                     }
-
-                    //添加表对象
-                    string dataModelName = this.xlsxCfg.DataTableObjectFormat.Format(tblName.Upper());
-                    string luaTblObj = JsonBuilder.ToLocalTbl(dataModelName, objBuilder.ToString());
-
-                    // 分组声明文件
 
                     //生成数据项
                     var tblDataMap = dataModel.tblDataMap;
@@ -208,17 +199,17 @@ namespace GFramework.Xlsx
                         dataBuilder.AddObjField(index, dataItem);
                     }
 
-                    // lua 文件名
-                    string lua = Path.Combine(exportDir.FullName, tblName + jsonCfg.Externion).PathFormat();
-                    dataModel.export = lua;
+                    // json 文件名
+                    string json = Path.Combine(exportDir.FullName, tblName + jsonCfg.Externion).PathFormat();
+                    dataModel.export = json;
 
-                    //lua导出包
-                    string luaTblData = JsonBuilder.ToLocalTbl(packageName, dataBuilder.ToString());
-                    string luaTxt = JsonBuilder.Package(luaTblData);
+                    //json导出包
+                    string jsonTblData = JsonBuilder.ToLocalTbl(packageName, dataBuilder.ToString());
+                    string jsonTxt = JsonBuilder.Package(jsonTblData);
 
-                    //lua文件描述
-                    string exportRootDir = this.jsonCfg.ExportTo;
-                    dataModel.txt = luaTxt;
+                    //json文件描述
+
+                    dataModel.txt = jsonTxt;
                 }
             }
         }
@@ -236,7 +227,7 @@ namespace GFramework.Xlsx
             else if (fieldType == xlsxTypes.String) fieldValue = JsonTemplate.STR.Format(fieldValue);
             else if (fieldType == xlsxTypes.ListNumber)
             {
-                var nums = fieldValue.Split(',');
+                var nums = fieldValue.Split(this.xlsxCfg.XlsxTypes.ListSeparator);
                 for (int i = 0; i < nums.Length; ++i)
                 {
                     string v = nums[i].ToString().Trim();
@@ -245,12 +236,13 @@ namespace GFramework.Xlsx
                         logger.E("数值数组包含非法字符！！！");
                         continue;
                     }
+                    nums[i] = JsonTemplate.NUM.Format(v);
                 }
                 fieldValue = JsonTemplate.LIST.Format(string.Join(',', nums));
             }
             else if (fieldType == xlsxTypes.ListString)
             {
-                var strs = fieldValue.Split(',');
+                var strs = fieldValue.Split(this.xlsxCfg.XlsxTypes.ListSeparator);
                 for (int i = 0; i < strs.Length; ++i)
                 {
                     string v = strs[i].ToString().Trim();
@@ -303,7 +295,7 @@ namespace GFramework.Xlsx
             string sourceTblName = sourceTbl.tblName;
             string sourceDataIndex = sourceTbl.dataIndex;
             var sourceTblModel = this.tblSheetMap[sourceNameSpace][sourceTblName];
-            string luaTxt = sourceTblModel.txt;
+            string jsonTxt = sourceTblModel.txt;
 
             var inlineTbl = linkData.inlineTbl;
             string inlineNameSpace = inlineTbl.nameSpace;
@@ -360,13 +352,13 @@ namespace GFramework.Xlsx
             return JsonTemplate.OBJ.Format(inlineTblBuilder.ToString());
         }
 
-        private void WriteAllXlsxDataToLua()
+        private void WriteAllXlsxDataToJson()
         {
             foreach (var (nameSpace, modelMap) in this.objSheetMap)
             {
                 foreach (var (tblName, model) in modelMap)
                 {
-                    WriteToLua(model);
+                    WriteTojson(model);
                 }
             }
 
@@ -374,7 +366,7 @@ namespace GFramework.Xlsx
             {
                 foreach (var (tblName, model) in modelMap)
                 {
-                    WriteToLua(model);
+                    WriteTojson(model);
                 }
             }
 
@@ -382,21 +374,21 @@ namespace GFramework.Xlsx
             {
                 foreach (var (tblName, model) in modelMap)
                 {
-                    WriteToLua(model);
+                    WriteTojson(model);
                 }
             }
         }
 
-        private void WriteToLua(XlsxDataModel dataModel)
+        private void WriteTojson(XlsxDataModel dataModel)
         {
             string xlsx = dataModel.xlsx;
-            string lua = dataModel.export;
-            string luaTxt = dataModel.txt;
-            using (FileStream fs = new FileStream(lua, FileMode.OpenOrCreate, FileAccess.Write))
+            string json = dataModel.export;
+            string jsonTxt = dataModel.txt;
+            using (FileStream fs = new FileStream(json, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 fs.SetLength(0);
-                byte[] luaData = Encoding.UTF8.GetBytes(luaTxt);
-                fs.Write(luaData);
+                byte[] jsonData = Encoding.UTF8.GetBytes(jsonTxt);
+                fs.Write(jsonData);
             }
             logger.P("导出完成{0}...".Format(dataModel.export));
         }

@@ -71,6 +71,19 @@ namespace GFramework.Xlsx
                         JsonExporter json = new JsonExporter(objMap2, enumMap2, tblMap2, linkMap2, xlsxCfg, jsonCfg);
                         json.ExportToJson();
                         break;
+                    case "cs":
+                        logger.P("执行导出cs...");
+                        var (objMap3, enumMap3, tblMap3, linkMap3) = OutputXlsxDataModels(xlsxs);
+                        // var objMap2 = MemoryManager.DeepClone(objSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var enumMap2 = MemoryManager.DeepClone(enumSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var tblMap2 = MemoryManager.DeepClone(tblSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var linkMap2 = MemoryManager.DeepClone(linkMap) as Dictionary<string, LinkData>;
+
+                        var csCfg = xlsxCfg.CSConfig;
+                        csCfg.ExportTo = Path.GetFullPath(csCfg.ExportTo);
+                        CSExporter cs = new CSExporter(objMap3, enumMap3, tblMap3, xlsxCfg, csCfg);
+                        cs.ExportToCS();
+                        break;
                     default:
                         break;
                 }

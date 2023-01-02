@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace GFramework.Xlsx
@@ -6,7 +7,7 @@ namespace GFramework.Xlsx
     {
         private StringBuilder body = new StringBuilder();
 
-        public static string ToTbl(Dictionary<string, XlsxTblItemData> data)
+        public static string PackageToTbl(Dictionary<string, XlsxTblItemData> data)
         {
             LuaBuilder itemBuilder = new LuaBuilder();
             foreach (var (key, field) in data)
@@ -16,24 +17,14 @@ namespace GFramework.Xlsx
             return LuaTemplate.TBL.Format(itemBuilder.ToString());
         }
 
-        public static string Package(string packageName, string packageBody)
+        public static string ToLocalTbl(string tblName, string content)
         {
-            return LuaTemplate.PACKAGE.Format(packageBody, packageName);
+            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, content);
         }
 
-        public static string ToDesc(string desc)
+        public static string Export(string packageName, string packageBody)
         {
-            return LuaTemplate.DESC.Format(desc).Endl();
-        }
-
-        public static string ToMultiDesc(string desc)
-        {
-            return LuaTemplate.MultiDESC.Format(desc).Endl();
-        }
-
-        public static string ToTbl(string body)
-        {
-            return LuaTemplate.TBL.Format(body);
+            return LuaTemplate.EXPORT.Format(packageBody, packageName);
         }
 
         public void AddSubBody(string content)
@@ -43,7 +34,7 @@ namespace GFramework.Xlsx
 
         public void AddDesc(string desc)
         {
-            this.body.AppendLine(LuaTemplate.DESC.Format(desc));
+            this.body.Append(LuaTemplate.DESC.Format(desc));
         }
 
         public void AddObjField(string key, string value)
@@ -51,19 +42,9 @@ namespace GFramework.Xlsx
             this.body.AppendLine(LuaTemplate.FIELD.Format(key, value));
         }
 
-        public void AddListNumItem(string key, string value)
+        public void AddListItem(string key, string value)
         {
             this.body.AppendLine(LuaTemplate.LIST_NUM_ITEM.Format(key, value));
-        }
-
-        public void AddListStrItem(string key, string value)
-        {
-            this.body.AppendLine(LuaTemplate.LIST_STR_ITEM.Format(key, value));
-        }
-
-        public string ToLocalTbl(string tblName)
-        {
-            return LuaTemplate.LOCAL_TABLE_OBJ.Format(tblName, this.body);
         }
 
         public override string ToString()

@@ -1,9 +1,7 @@
 {
 	"Xlsx": "./xlsx",
-	"ExportCmd": "lua|json",
+	"ExportCmd": "cs|lua|json",
 	"XlsxTypeRegex": "##(TBL|ENUM|OBJ)-{0,}(.*)",
-	"DataTableFormat": "XLSX_{0}_{1}",
-	"DataTableObjectFormat": "I{0}",
 	"LuaDefaultNameSpace": "global",
 	"NameSpaceRegex": "@\\s*([a-zA-Z_][a-zA-Z0-9_]*)?\\s*",
 	"IgnoreXlsxRegex": "#.*",
@@ -20,10 +18,18 @@
 	"LuaConfig": {
 		"DeclareJson": "./xlsx.d.json",
 		"ExportTo": "./data/lua",
-		"Externion": ".lua"
+		"Externion": ".lua",
+		"PackageFormat": "XLSX_{0}_{1}",
+		"PackageObjectFormat": "I{0}"
 	},
 	"JsonConfig": {
 		"ExportTo": "./data/json",
-		"Externion": ".json"
+		"Externion": ".json",
+		"PackageFormat": "XLSX_{0}_{1}"
+	},
+	"CSConfig": {
+		"ExportTo": "./data/cs",
+		"Externion": ".cs",
+		"PackageFormat": "XLSX.{0}"
 	}
 }
