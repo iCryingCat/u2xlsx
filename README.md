@@ -1,4 +1,7 @@
 # xlsx 2 lua
+## u2xlsx v3.0.1 exe下载
+
+https://github.com/iCryingCat/xlsx/releases/download/v3.0.1/xlsx.v3.0.1.zip
 
 ## 导出类型
 
@@ -432,9 +435,3 @@ namespace XLSX.GLOBAL
 	}
 }
 ```
-
-
-
-## u2xlsx v3.0.1 exe下载
-
-https://github.com/iCryingCat/xlsx/releases/download/v3.0.1/xlsx.v3.0.1.zip
