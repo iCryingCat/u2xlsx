@@ -165,37 +165,27 @@ return XLSX_GLOBAL_CITY
 
 ```json
 {
-	"SourcePath": "./xlsx",
-	"ExportPath": "./data",
-	"ExportFlags": "lua",
-	"Namespace": "XLSX_{0}_{1}",
-	"LuaDefaultNameSpace": "global",
-	"XlsxNameSpaceFlag": "@",
-	"XlsxIgnoreFlag": "#",
-	"SheetIgnoreFlag": "#",
-	"SheetSepFlag": "-",
-	"ListSepFlag": "|",
-	"InlineTblRegex": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
-	"LuaTypes": {
-		"Obj": "Obj",
-		"Enum": "Enum",
-		"Table": "Tbl"
-	},
-
-	"LuaDataModel": "I{0}"
+	"SourcePath": "./xlsx", 	// xlsx目录 
+	"ExportPath": "./data",		// lua导出目录
+	"ExportFlags": "lua", 		// 导出类型
+	"LuaConfig": {
+		"DataTableFormat": "XLSX_{0}_{1}", 		// 导出数据表命名格式：XLSX_TEST_CITY
+		"DataTableObjectFormat": "I{0}",		// 导出数据表对象命名格式：ICITY
+		"LuaDefaultNameSpace": "global",		// 导出数据表默认命名空间：XLSX_GLOBAL_XX
+		"NameSpaceRegex": "@\\s*([a-zA-Z_][a-zA-Z0-9_]*)?\\s*",		// xlsx文件名指定命名空间格式：C1-测试@test.xlsx
+		"IgnoreXlsxRegex": "#.*",				// xlsx忽略导出：#C1-测试.xlsx
+         "SheetRegex": "(Obj|Enum|Tbl)\\s*-\\s*([a-zA-Z_][a-zA-Z0-9_]*)",	// sheet命名格式：Tbl-city、Enum-city、Tbl-city
+		"IgnoreSheetRegex": "#.*",				// sheet忽略导出：#Tbl-city
+		"LuaTypes": {		// xlsx导出lua字段类型
+			"Number": "num",		// 数值
+			"String": "str",		// 字符串
+			"ListNumber": "list:num", 		// 数值列表
+			"ListString": "list:str",		// 字符串列表
+			"InlineTable": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)"		// lian'jie
+		}
+	}
 }
-
 ```
 
--   **SourcePath：xlsx目录相对路径**
--   **ExportPath：导出lua相对路径**
--   **ExportFlags：需要导出的格式**
--   **Namespace：命名空间格式：XLSX_[xlsx文件@对应的命名空间]_[sheet名]**
--   **XlsxNameSpaceFlag：xlsx文件命名空间标识**
--   **XlsxIgnoreFlag：xlsx忽略导出标识**
--   **SheetSepFlag：sheet名类型分隔符**
--   **LuaTypes：sheet名指定的lua类型**
--   **LuaDataModel：导出lua数据表的表对象命名格式**
-
-## exe下载
-Release v1.0.1：https://github.com/iCryingCat/xlsx/releases/download/v1.0.1/xlsx.zip
+## Release v2.0.1 exe下载
+https://github.com/iCryingCat/xlsx/releases/download/v2.0.1/xlsx.v2.0.1.zip

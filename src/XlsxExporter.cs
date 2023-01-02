@@ -1,14 +1,81 @@
 using System.Data;
 using System.Text;
+using System.Text.RegularExpressions;
+using ExcelDataReader;
+using GFramework;
+using Newtonsoft.Json.Linq;
 
 namespace GFramework.Xlsx
 {
-    /// <summary>
-    /// xlsx导出工具
-    /// </summary>
-    public class XlsxExporter : Singleton<XlsxExporter>
+    public class XlsxExporter
     {
-        public XlsxConfig cfg = null;
+        private GLogger logger = new GLogger("LuaExporter");
+
+        public const string InlineTblRegexFormat = "{0}::{1}::{2}";
+        public const string InlineTblBelongRegexFormat = "{0}::{1}";
+        public const string InlineTblRegex = "([.*?^[a-zA-Z_][a-zA-Z0-9_]*\\s*::\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*::\\s*[\\s+a-zA-Z0-9_,]+)";
+        public const string InlineTblBelongRegex = "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([\\s+a-zA-Z0-9_,]+)";
+
+        private JObject declareJson = null;
+
+        private XlsxConfig xlsxCfg = null;
+
+        public void ExecuteExport()
+        {
+            //加载配置表
+            var xlsxCfg = LoadConfig();
+            this.xlsxCfg = xlsxCfg;
+
+            //检查xlsx目录
+            string sourcePath = Path.GetFullPath(xlsxCfg.Xlsx).PathFormat();
+            if (!Directory.Exists(sourcePath))
+                throw new DirectoryNotFoundException(sourcePath);
+            logger.P("xlsx路径：{0}".Format(sourcePath));
+
+            if (!Regex.IsMatch(xlsxCfg.ExportCmd, "lua|json|cs"))
+                logger.E("不支持该导出命令：{0}".Format(xlsxCfg.ExportCmd));
+            var xlsxs = FindAllXlsx();
+            string[] exportCmd = xlsxCfg.ExportCmd.Split('|');
+            foreach (string cmd in exportCmd)
+            {
+                switch (cmd)
+                {
+                    case "lua":
+                        logger.P("执行导出lua...");
+                        var (objMap1, enumMap1, tblMap1, linkMap1) = OutputXlsxDataModels(xlsxs);
+                        // var objMap1 = MemoryManager.DeepClone(objSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var enumMap1 = MemoryManager.DeepClone(enumSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var tblMap1 = MemoryManager.DeepClone(tblSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var linkMap1 = MemoryManager.DeepClone(linkMap) as Dictionary<string, LinkData>;
+
+                        var luaCfg = xlsxCfg.LuaConfig;
+                        luaCfg.ExportTo = Path.GetFullPath(luaCfg.ExportTo);
+
+                        string declarePath = Path.GetFullPath(luaCfg.DeclareJson);
+                        if (!File.Exists(declarePath)) File.Create(declarePath);
+                        this.declareJson = new JsonStream(declarePath).Read<JObject>();
+
+                        LuaExporter lua = new LuaExporter(objMap1, enumMap1, tblMap1, linkMap1, xlsxCfg, luaCfg, declareJson);
+                        lua.ExportToLua();
+                        break;
+                    case "json":
+                        logger.P("执行导出json...");
+                        var (objMap2, enumMap2, tblMap2, linkMap2) = OutputXlsxDataModels(xlsxs);
+                        // var objMap2 = MemoryManager.DeepClone(objSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var enumMap2 = MemoryManager.DeepClone(enumSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var tblMap2 = MemoryManager.DeepClone(tblSheetMap) as Dictionary<string, Dictionary<string, XlsxDataModel>>;
+                        // var linkMap2 = MemoryManager.DeepClone(linkMap) as Dictionary<string, LinkData>;
+
+                        var jsonCfg = xlsxCfg.JsonConfig;
+                        jsonCfg.ExportTo = Path.GetFullPath(jsonCfg.ExportTo);
+                        JsonExporter json = new JsonExporter(objMap2, enumMap2, tblMap2, linkMap2, xlsxCfg, jsonCfg);
+                        json.ExportToJson();
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
 
         public XlsxConfig LoadConfig()
         {
@@ -17,310 +84,288 @@ namespace GFramework.Xlsx
             string cfgPath = Path.Combine(curDir, cfgName).Format();
             JsonStream js = new JsonStream(cfgPath);
             var cfg = js.Read<XlsxConfig>();
-            this.cfg = cfg;
-            this.cfg.SourcePath = Path.GetFullPath(cfg.SourcePath).PathFormat();
-            this.cfg.ExportPath = Path.GetFullPath(cfg.ExportPath).PathFormat();
             return cfg;
         }
 
-        // private class TableProperty
-        // {
-        //     public string nameSpace;
-        //     public string fieldName;
-        //     public string fieldValue;
+        /// <summary>
+        /// 获取所有xlsx文件
+        /// </summary>
+        private List<string> FindAllXlsx()
+        {
+            List<string> files = new List<string>();
+            var xlsxs = FileUtil.FindFilesByTypeWithDep(this.xlsxCfg.Xlsx, ".xlsx");
 
-        //     public TableProperty(string nameSpace, string fieldName, string fieldValue)
-        //     {
-        //         this.nameSpace = nameSpace;
-        //         this.fieldName = fieldName;
-        //         this.fieldValue = fieldValue;
-        //     }
-        // }
+            logger.P("xlsx 列表：");
+            for (int i = 0; i < xlsxs.Count; ++i)
+            {
+                string xlsx = xlsxs[i];
+                logger.P("{0}：{1}".Format(i, xlsx));
+            }
+            logger.P("共{0}个xlsx文件".Format(xlsxs.Count));
 
-        // private static Dictionary<string, TableProperty> tableMap = new Dictionary<string, TableProperty>();
-        // private const int dfsMaxDepth = 50;
-        // private static int dfsDepth = 0;
+            return xlsxs;
+        }
 
-        // //----加载配置文件
-        // static private Dictionary<string, string> LoadConfig()
-        // {
-        //     string curDir = Environment.CurrentDirectory;
-        //     if (curDir == null) throw new FileNotFoundException("XlsxExporterEditor");
+        /// <summary>
+        /// 获取所有类型的sheet
+        /// </summary>
+        private (Dictionary<string, Dictionary<string, XlsxDataModel>>,
+        Dictionary<string, Dictionary<string, XlsxDataModel>>,
+        Dictionary<string, Dictionary<string, XlsxDataModel>>,
+        Dictionary<string, LinkData>)
+        OutputXlsxDataModels(List<string> xlsxs)
+        {
+            var objSheetMap = new Dictionary<string, Dictionary<string, XlsxDataModel>>();
+            var enumSheetMap = new Dictionary<string, Dictionary<string, XlsxDataModel>>();
+            var tblSheetMap = new Dictionary<string, Dictionary<string, XlsxDataModel>>();
+            var linkMap = new Dictionary<string, LinkData>();
+            foreach (var xlsx in xlsxs)
+            {
+                //忽略不需要导出文件
+                string xlsxFileName = xlsx.GetCurFileName();
+                if (Regex.IsMatch(xlsxFileName, this.xlsxCfg.IgnoreXlsxRegex))
+                    continue;
 
-        //     string cfgName = "xlsx.config.json";
-        //     string cfgPath = Path.Combine(curDir, cfgName).Format();
-        //     JsonStream js = new JsonStream(cfgPath);
-        //     Dictionary<string, string> cfg = js.Read<Dictionary<string, string>>();
-        //     return cfg;
-        // }
 
+                //获取所有sheet
+                Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using (FileStream fs = new FileStream(xlsx, FileMode.Open))
+                {
+                    //匹配命名空间
+                    var matchNameSpace = Regex.Match(xlsxFileName, this.xlsxCfg.NameSpaceRegex);
+                    string nameSpace = matchNameSpace.Groups[1].Value;
+                    //默认全局命名空间
+                    if (string.IsNullOrEmpty(nameSpace))
+                        nameSpace = this.xlsxCfg.LuaDefaultNameSpace;
 
+                    var excelDataReader = ExcelReaderFactory.CreateOpenXmlReader(fs);
+                    var sheetSet = excelDataReader.AsDataSet().Tables;
+                    foreach (DataTable sheet in sheetSet)
+                    {
+                        string sheetName = sheet.TableName;
+                        string tblName = sheetName.ToVaildName();
 
-        // //----导出cs
-        // static public void ExecuteExportToCS(string rootPath)
-        // {
-        //     List<string> files = new List<string>();
-        //     GetAllXlsxFile(rootPath, ref files);
-        //     foreach (var file in files)
-        //     {
-        //         ReadXlsx(file, XlsxConfig.DOT_CS);
-        //     }
-        // }
+                        //忽略不需要导出的表
+                        if (Regex.IsMatch(sheetName, this.xlsxCfg.IgnoreSheetRegex))
+                            continue;
 
-        // static private void GetAllXlsxFile(string rootPath, ref List<string> filesArr)
-        // {
-        //     var directories = Directory.GetDirectories(rootPath);
-        //     var files = Directory.GetFiles(rootPath);
-        //     foreach (var directory in directories)
-        //     {
-        //         GetAllXlsxFile(directory, ref filesArr);
-        //     }
-        //     foreach (var file in files)
-        //     {
-        //         string extension = file.PathExtension();
-        //         if (extension == XlsxConfig.DOT_XLSX)
-        //             filesArr.Add(file);
-        //     }
-        // }
+                        string luaType = string.Empty;
+                        string desc = string.Empty;
+                        int rowStart = -1;
+                        int colStart = -1;
+                        int rowsNum = sheet.Rows.Count;
+                        int colsNum = sheet.Columns.Count;
+                        for (int r = 0; r < rowsNum; ++r)
+                        {
+                            bool find = false;
+                            for (int c = 0; c < colsNum; ++c)
+                            {
+                                var cell = sheet.Rows[r][c].ToString();
+                                if (string.IsNullOrEmpty(cell)) continue;
+                                if (Regex.IsMatch(cell, this.xlsxCfg.XlsxTypeRegex))
+                                {
+                                    var xlsxTypeMatch = Regex.Match(cell, this.xlsxCfg.XlsxTypeRegex);
+                                    luaType = xlsxTypeMatch.Groups[1].Value;
+                                    desc = xlsxTypeMatch.Groups[2].Value;
+                                    rowStart = r;
+                                    colStart = c;
+                                    find = true;
+                                    break;
+                                }
+                            }
+                            if (find) break;
+                        }
 
-        // static private void ReadXlsx(string file, string toBuildFileExtension)
-        // {
-        //     using (FileStream xlsxFS = new FileStream(file, FileMode.Open))
-        //     {
-        //         IExcelDataReader excelDataReader = ExcelReaderFactory.CreateOpenXmlReader(xlsxFS);
-        //         DataSet set = excelDataReader.AsDataSet();
-        //         foreach (DataTable sheet in set.Tables)
-        //         {
-        //             string sheetName = sheet.TableName;
-        //             // 是否忽略表
-        //             if (sheetName[0] == XlsxConfig.KEY_IGNORE) continue;
+                        XlsxDataModel dataModel = new XlsxDataModel()
+                        {
+                            xlsx = xlsx,
+                            nameSpace = nameSpace,
+                            tblName = tblName,
+                            xlsxType = luaType,
+                            desc = desc,
+                        };
 
-        //             string[] flags = sheetName.Split(XlsxConfig.KEY_SHEET_Sep);
-        //             if (flags.Length < 2)
-        //                 throw new Exception("xlsx sheet：{0}命名不合法！！！ 应该至少标明表类型、表名，比如：Obj-test");
+                        switch (luaType)
+                        {
+                            case "OBJ":
+                                if (!objSheetMap.ContainsKey(nameSpace)) objSheetMap.Add(nameSpace, new Dictionary<string, XlsxDataModel>());
+                                if (objSheetMap[nameSpace].ContainsKey(tblName))
+                                {
+                                    logger.E("导出表名冲突：{0}/{1}".Format(xlsx, tblName));
+                                    continue;
+                                }
+                                DealWithXlsxObj(sheet, rowStart, colStart, ref dataModel);
+                                objSheetMap[nameSpace][tblName] = dataModel;
+                                break;
+                            case "ENUM":
+                                if (!enumSheetMap.ContainsKey(nameSpace)) enumSheetMap.Add(nameSpace, new Dictionary<string, XlsxDataModel>());
+                                if (enumSheetMap[nameSpace].ContainsKey(tblName))
+                                {
+                                    logger.E("导出表名冲突：{0}/{1}".Format(xlsx, tblName));
+                                    continue;
+                                }
+                                DealWithXlsxEnum(sheet, rowStart, colStart, ref dataModel);
+                                enumSheetMap[nameSpace][tblName] = dataModel;
+                                break;
+                            case "TBL":
+                                if (!tblSheetMap.ContainsKey(nameSpace)) tblSheetMap.Add(nameSpace, new Dictionary<string, XlsxDataModel>());
+                                if (tblSheetMap[nameSpace].ContainsKey(tblName))
+                                {
+                                    logger.E("导出表名冲突：{0}/{1}".Format(xlsx, tblName));
+                                    continue;
+                                }
+                                DealWithXlsxTbl(sheet, rowStart, colStart, ref dataModel, ref linkMap);
+                                tblSheetMap[nameSpace][tblName] = dataModel;
+                                break;
+                            default:
+                                logger.E("不支持导出该lua数据类型：{0}".Format(luaType));
+                                break;
+                        }
+                    }
+                }
+            }
+            return (objSheetMap, enumSheetMap, tblSheetMap, linkMap);
+        }
 
-        //             // 表类型
-        //             string sheetFlag = flags[0];
-        //             XlsxSheetFlag xlsxSheetFlag;
-        //             if (Enum.TryParse<XlsxSheetFlag>(sheetFlag, out xlsxSheetFlag))
-        //                 throw new Exception("无法导出该格式的xlsx sheet：{0}".Format(sheetFlag));
+        public void DealWithXlsxObj(DataTable sheet, int rowStart, int colStart, ref XlsxDataModel dataModel)
+        {
+            int columnsNum = sheet.Columns.Count;
+            int rowsNum = sheet.Rows.Count;
 
-        //             // 表名
-        //             string tableName = flags[1];
+            for (int i = rowStart + 2; i < rowsNum; ++i)
+            {
+                DataRow row = sheet.Rows[i];
+                string fieldName = row[0].ToString();     // 字段名称
+                string fieldType = row[1].ToString();     // 字段类型
+                string fieldValue = row[2].ToString();    // 字段值
+                string fieldDesc = row[3].ToString();     // 字段表述
+                // 格式检查
+                if (string.IsNullOrEmpty(fieldName))
+                {
+                    logger.E("缺少字段名称：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
+                if (string.IsNullOrEmpty(fieldType))
+                {
+                    logger.E("缺少字段类型：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
+                if (string.IsNullOrEmpty(fieldValue))
+                {
+                    logger.E("缺少字段值：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
+                var objItem = new XlsxTblItemData(fieldType, fieldName, fieldValue, fieldDesc);
+                dataModel.objDataList.Add(objItem);
+            }
+        }
 
-        //             // 命名空间
-        //             string nameSpace = flags[2];
+        private void DealWithXlsxEnum(DataTable sheet, int rowStart, int colStart, ref XlsxDataModel dataModel)
+        {
+            int columnsNum = sheet.Columns.Count;
+            int rowsNum = sheet.Rows.Count;
 
-        //             // 导出路径
-        //             string buildFileName = tableName + toBuildFileExtension;
-        //             string toBuildPath = Path.Combine(XlsxConfig.BUILD_PATH, buildFileName);
+            for (int i = rowStart + 2, enumIndex = 0; i < rowsNum; ++i, ++enumIndex)
+            {
+                DataRow row = sheet.Rows[i];
+                string fieldName = row[0].ToString();     // 字段名称
+                string fieldValue = row[1].ToString();    // 字段值
+                string fieldDesc = row[2].ToString();     // 字段表述
+                // 格式检查
+                if (string.IsNullOrEmpty(fieldName))
+                {
+                    logger.E("缺少枚举名：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
 
-        //             TableProperty property;
-        //             if (tableMap.TryGetValue(buildFileName, out property)) continue;
-        //             string txt = string.Empty;
-        //             switch (xlsxSheetFlag)
-        //             {
-        //                 case XlsxSheetFlag.Class:
-        //                     txt = BuildCSClass(nameSpace, tableName, sheet);
-        //                     break;
-        //                 case XlsxSheetFlag.Obj:
-        //                     txt = BuildLuaObj(nameSpace, tableName, sheet);
-        //                     break;
-        //                 case XlsxSheetFlag.Enum:
-        //                     txt = BuildLuaEnum(nameSpace, tableName, sheet);
-        //                     break;
-        //                 case XlsxSheetFlag.Tbl:
-        //                     txt = BuildLuaTable(nameSpace, tableName, sheet);
-        //                     break;
-        //             }
+                if (string.IsNullOrEmpty(fieldValue))
+                {
+                    logger.E("缺少枚举值：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
 
-        //             using (FileStream fs = new FileStream(toBuildPath, FileMode.OpenOrCreate))
-        //             {
-        //                 byte[] bytes = Encoding.UTF8.GetBytes(txt);
-        //                 fs.Write(bytes, 0, bytes.Length);
-        //             }
-        //         }
-        //     }
-        // }
+                var objItem = new XlsxTblItemData(this.xlsxCfg.XlsxTypes.Number, fieldName, fieldValue, fieldDesc);
+                dataModel.objDataList.Add(objItem);
+            }
+        }
 
-        // static private string BuildCSClass(string nameSpace, string className, DataTable sheet)
-        // {
-        //     int colsNum = sheet.Columns.Count;
-        //     int rowsNum = sheet.Rows.Count;
-        //     if (rowsNum < 4) throw new Exception("表内容格式不正确！！！1.该表的描述说明、2.字段描述、3.字段类型、4.字段名");
+        private void DealWithXlsxTbl(DataTable sheet, int rowStart, int colStart, ref XlsxDataModel dataModel, ref Dictionary<string, LinkData> linkMap)
+        {
+            int columnsNum = sheet.Columns.Count;
+            int rowsNum = sheet.Rows.Count;
 
-        //     CSBuilder csBuilder = new CSBuilder(nameSpace);
-        //     DataRow typeDesc = sheet.Rows[0];
-        //     DataRow fieldDesc = sheet.Rows[1];
-        //     DataRow fieldTypes = sheet.Rows[2];
-        //     DataRow fieldNames = sheet.Rows[3];
-        //     // DataModel 类
-        //     Dictionary<Type, string> namespaceMap = new Dictionary<Type, string>();
-        //     csBuilder.desc = typeDesc.IsNull(0) ? typeDesc[0].ToString() : string.Empty;
-        //     for (int i = 0; i < colsNum; ++i)
-        //     {
-        //         string desc = fieldDesc.IsNull(i) ? string.Empty : fieldDesc[i].ToString();
-        //         string typeName = fieldTypes.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段类型: {0}".Format(sheet.TableName)) : fieldTypes[i].ToString();
-        //         string fieldName = fieldNames.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段名: {0}".Format(sheet.TableName)) : fieldNames[i].ToString();
-        //         csBuilder.AddDesc(desc);
-        //         csBuilder.AddPublicField(typeName, fieldName);
-        //         Type t = Type.GetType(fieldName);
-        //         if (null != t)
-        //         {
-        //             string ns = t.Namespace;
-        //             if (namespaceMap.TryGetValue(t, out ns))
-        //             {
-        //                 csBuilder.AddUsing(ns);
-        //             }
-        //         }
-        //     }
-        //     csBuilder.AddSubClass(className, typeof(XlsxModel).Name);
-        //     string txt = csBuilder.ToString();
-        //     return txt;
-        // }
+            //生成表对象
+            DataRow fieldNames = sheet.Rows[rowStart + 1];
+            DataRow fieldTypes = sheet.Rows[rowStart + 2];
+            DataRow fieldDescs = sheet.Rows[rowStart + 3];
 
-        // static private string ToLuaData(string cellType, string cellValue)
-        // {
-        //     switch (cellType)
-        //     {
-        //         case Xlsx2LuaConfig.Number:
-        //             cellValue = LuaTemplate.OBJ.Format(cellValue);
-        //             break;
-        //         case Xlsx2LuaConfig.String:
-        //             cellValue = LuaTemplate.STR.Format(cellValue);
-        //             break;
-        //         case Xlsx2LuaConfig.Table:
+            int xid = -1;
+            for (int c = colStart, enumIndex = 0; c < columnsNum; ++c, ++enumIndex)
+            {
+                string fieldName = fieldNames[c].ToString();
+                string fieldType = fieldTypes[c].ToString();
+                string fieldDesc = fieldDescs[c].ToString();
 
-        //             break;
-        //     }
-        //     return cellValue;
-        // }
+                // 格式检查
+                if (string.IsNullOrEmpty(fieldType))
+                {
+                    logger.E("缺少字段类型：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
 
-        // /// <summary>
-        // /// row1: 该表的描述说明
-        // /// row2: key、type、value、desc
-        // /// </summary>
-        // /// <param name="nameSpace"></param>
-        // /// <param name="tableName"></param>
-        // /// <param name="sheet"></param>
-        // /// <returns></returns>
-        // static private string BuildLuaObj(string nameSpace, string tableName, DataTable sheet)
-        // {
-        //     int columnsNum = sheet.Columns.Count;
-        //     int rowsNum = sheet.Rows.Count;
-        //     if (rowsNum < 2) throw new Exception("表内容格式不正确！！！\n" + "row1: 该表的描述说明\n" + "row2: key(参数名)、type(参数类型)、value(参数值)、desc(参数说明)");
-        //     LuaBuilder luaBuilder = new LuaBuilder();
-        //     for (int i = 2; i < rowsNum; ++i)
-        //     {
-        //         DataRow row = sheet.Rows[i];
-        //         string argName = row[0].ToString();
-        //         string argType = row[1].ToString();
-        //         string argValue = row[2].ToString();
-        //         string argDesc = row[3].ToString();
-        //         luaBuilder.AddDesc(argDesc);
-        //         string fieldValue = ToLuaData(argType, argValue);
-        //         luaBuilder.AddObjField(argName, fieldValue);
-        //     }
-        //     return luaBuilder.ToLocalTbl(tableName);
-        // }
+                if (string.IsNullOrEmpty(fieldName))
+                {
+                    logger.E("缺少字段名称：{0}/{1}".Format(dataModel.xlsx, dataModel.tblName));
+                    continue;
+                }
 
-        // /// <summary>
-        // /// row1: 该表的描述说明
-        // /// row2: key、value、desc
-        // /// </summary>
-        // /// <param name="nameSpace"></param>
-        // /// <param name="tableName"></param>
-        // /// <param name="sheet"></param>
-        // /// <returns></returns>
-        // static private string BuildLuaEnum(string nameSpace, string tableName, DataTable sheet)
-        // {
-        //     int columnsNum = sheet.Columns.Count;
-        //     int rowsNum = sheet.Rows.Count;
-        //     if (rowsNum < 2) throw new Exception("表内容格式不正确！！！\n" + "row1: 该表的描述说明\n" + "row2: key(参数名)、value(参数值)、desc(参数说明)");
-        //     LuaBuilder luaBuilder = new LuaBuilder();
-        //     int enumIndex = -1;
-        //     for (int i = 2; i < rowsNum; ++i)
-        //     {
-        //         DataRow row = sheet.Rows[i];
-        //         string argName = row[0].ToString();
-        //         enumIndex = row.IsNull(2) ? ++enumIndex : int.Parse(row[2].ToString());
-        //         string argValue = enumIndex.ToString();
-        //         string argDesc = row[3].ToString();
-        //         luaBuilder.AddDesc(argDesc);
-        //         string fieldValue = ToLuaData(Xlsx2LuaConfig.Number, argValue);
-        //         luaBuilder.AddObjField(argName, fieldValue);
-        //     }
-        //     return luaBuilder.ToLocalTbl(tableName);
-        // }
+                if (fieldType == this.xlsxCfg.XlsxTypes.Xid)
+                {
+                    xid = c;
+                }
 
-        // /// <summary>
-        // /// row1: 该表的描述说明\n
-        // /// row2: 参数说明
-        // /// row3: 参数类型
-        // /// row3: 参数名
-        // /// </summary>
-        // /// <param name="nameSpace"></param>
-        // /// <param name="tableName"></param>
-        // /// <param name="sheet"></param>
-        // /// <returns></returns>
-        // static private string BuildLuaTable(string nameSpace, string tableName, DataTable sheet)
-        // {
-        //     int columnsNum = sheet.Columns.Count;
-        //     int rowsNum = sheet.Rows.Count;
-        //     if (rowsNum < 4) throw new Exception("表内容格式不正确！！！\n" + "row1: 该表的描述说明\n" + "row2: 参数说明\n" + "row3: 参数类型\n" + "row3: 参数名\n");
+                string fieldValue = enumIndex.ToString();
+                var objItem = new XlsxTblItemData(fieldType, fieldName, fieldValue, fieldDesc);
+                dataModel.objDataList.Add(objItem);
+            }
 
-        //     string sheetName = sheet.TableName;
-        //     LuaBuilder luaBuilder = new LuaBuilder();
-        //     DataRow tblDesc = sheet.Rows[0];
-        //     luaBuilder.AddDesc(tblDesc[0].ToString());
+            var objDataList = dataModel.objDataList;
+            for (int r = rowStart + 4, enumIndex = 0; r < rowsNum; ++r, ++enumIndex)
+            {
+                DataRow row = sheet.Rows[r];
 
-        //     DataRow fieldDesc;
-        //     DataRow fieldTypes;
-        //     DataRow fieldNames;
-        //     List<string> descList = new List<string>();
-        //     List<string> typeList = new List<string>();
-        //     List<string> nameList = new List<string>();
+                // 表索引
+                string key = xid < 0 ? enumIndex.ToString() : row[xid].ToString();
+                dataModel.tblDataMap[key] = new XlsxTblData();
 
-        //     LuaBuilder objBuilder = new LuaBuilder();
-        //     LuaBuilder tblBuilder = new LuaBuilder();
+                for (int c = colStart, fieldIndex = 0; c < columnsNum; ++c, ++fieldIndex)
+                {
+                    if (c == xid) continue;
+                    // 字段名
+                    string fieldName = objDataList[fieldIndex].fieldName;
+                    // 字段类型
+                    string fieldType = objDataList[fieldIndex].fieldType;
+                    // 字段值
+                    string fieldValue = row[c].ToString();
 
-        //     fieldDesc = sheet.Rows[1];
-        //     fieldTypes = sheet.Rows[2];
-        //     fieldNames = sheet.Rows[3];
-        //     for (int i = 0; i < columnsNum; ++i)
-        //     {
-        //         string desc = fieldDesc.IsNull(i) ? string.Empty : fieldDesc[i].ToString();
-        //         string typeName = fieldTypes.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段类型: {0}".Format(sheet.TableName)) : fieldTypes[i].ToString();
-        //         string fieldName = fieldNames.IsNull(i) ? throw new NoNullAllowedException("sheet 缺少字段名: {0}".Format(sheet.TableName)) : fieldNames[i].ToString();
-        //         descList.Add(desc);
-        //         typeList.Add(typeName);
-        //         nameList.Add(fieldName);
-        //         objBuilder.AddObjField(fieldName, i.ToString());
-        //     }
+                    //内嵌表
+                    bool isInline = Regex.IsMatch(fieldType, this.xlsxCfg.XlsxTypes.InlineTable);
+                    if (isInline)
+                    {
+                        var match = Regex.Match(fieldType, this.xlsxCfg.XlsxTypes.InlineTable);
+                        string inlineTblNameSpace = match.Groups[1].Value;
+                        string inlineTblName = match.Groups[2].Value;
+                        LinkData linkData = new LinkData(
+                            new SourceTbl(dataModel.nameSpace, dataModel.tblName, key),
+                            new InlineTbl(inlineTblNameSpace, inlineTblName, fieldValue)
+                        );
+                        linkMap[linkData.sourceTbl.ToString()] = linkData;
+                    }
 
-        //     luaBuilder.AddSubContent(objBuilder.ToLocalTbl(tableName));
-
-        //     for (int i = 4, enumIndex = 0; i < rowsNum; ++i, ++enumIndex)
-        //     {
-        //         DataRow row = sheet.Rows[i];
-        //         string key = row[0].ToString();
-
-        //         List<string> rowValues = new List<string>();
-        //         for (int j = 1; j < columnsNum; ++j)
-        //         {
-        //             string cellType = typeList[j];
-        //             string cellValue = row[j].ToString();
-        //             cellValue = ToLuaData(cellType, cellValue);
-        //             rowValues.Add(cellValue);
-        //         }
-        //         string tblItemKey = row[0].ToString();
-        //         string tblItemValue = LuaBuilder.ToLuaTable(rowValues.ToArray());
-        //         tblBuilder.AddListItem(tblItemKey, tblItemValue);
-        //         break;
-        //     }
-
-        //     string txt = luaBuilder.ToString();
-        //     return txt;
-        // }
+                    var tblItem = new XlsxTblItemData(fieldType, fieldName, fieldValue);
+                    dataModel.tblDataMap[key].data[fieldName] = tblItem;
+                }
+            }
+        }
     }
 }

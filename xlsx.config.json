@@ -1,21 +1,29 @@
 {
-	"SourcePath": "./xlsx",
-	"ExportPath": "./data",
-	"ExportFlags": "lua",
+	"Xlsx": "./xlsx",
+	"ExportCmd": "lua|json",
+	"XlsxTypeRegex": "##(TBL|ENUM|OBJ)-{0,}(.*)",
+	"DataTableFormat": "XLSX_{0}_{1}",
+	"DataTableObjectFormat": "I{0}",
+	"LuaDefaultNameSpace": "global",
+	"NameSpaceRegex": "@\\s*([a-zA-Z_][a-zA-Z0-9_]*)?\\s*",
+	"IgnoreXlsxRegex": "#.*",
+	"IgnoreSheetRegex": "#.*",
+	"XlsxTypes": {
+		"Number": "num",
+		"String": "str",
+		"ListNumber": "list:num",
+		"ListString": "list:str",
+		"ListSeparator": ",",
+		"Xid": "xid",
+		"InlineTable": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)"
+	},
 	"LuaConfig": {
-		"DataTableFormat": "XLSX_{0}_{1}",
-		"DataTableObjectFormat": "I{0}",
-		"LuaDefaultNameSpace": "global",
-		"NameSpaceRegex": "@\\s*([a-zA-Z_][a-zA-Z0-9_]*)?\\s*",
-		"IgnoreXlsxRegex": "#.*",
-		"IgnoreSheetRegex": "#.*",
-		"SheetRegex": "(Obj|Enum|Tbl)\\s*-\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
-		"LuaTypes": {
-			"Number": "num",
-			"String": "str",
-			"ListNumber": "list:num",
-			"ListString": "list:str",
-			"InlineTable": "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)"
-		}
+		"DeclareJson": "./xlsx.d.json",
+		"ExportTo": "./data/lua",
+		"Externion": ".lua"
+	},
+	"JsonConfig": {
+		"ExportTo": "./data/json",
+		"Externion": ".json"
 	}
 }
