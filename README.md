@@ -1,19 +1,54 @@
 # xlsx 2 lua
-## u2xlsx v3.0.1 exe下载
+1.   ### git clone [git@github.com:iCryingCat/com.baize.u2xlsx.git]() 到unity项目中
 
-https://github.com/iCryingCat/xlsx/releases/download/v3.0.1/xlsx.v3.0.1.zip
+![image-20230121160339265](./assets/image-20230121160339265.png)
 
-## 导出类型
+2.   ### 配置导表工具
 
-**1. Obj**
+![image-20230121160358543](./assets/image-20230121160358543.png)
+
+![image-20230121154623338](./assets/image-20230121154623338.png)
+
+3.   ### 根据配置的路径添加xlsx文件
+
+![image-20230121160424244](./assets/image-20230121160424244.png)
+
+## excel规范
+
+### xlsx文件命名
+
+-   **[#] [首字字母大写+序号优先级] [xlsx文件]@命名空间**
+
+-   **#开头忽略导出**
+
+-   **首字字母大写+序号优先级格式可以提高检索速度，方便查找文件**
+
+    **如M1-模型资源、T1-贴图资源**
+
+-   **@指定命名空间，不指定默认命名空间为global**
+
+![image-20230121160601192](./assets/image-20230121160601192.png)
+
+### Sheet命名
+
+-   **[全英文]、[无空格]、[无特殊符号]、[驼峰命名]**
+-   **比如: city、#user**
+
+-   **#开头忽略导出**
+
+### 数据表
+
+-   **以：##[表类型]–[表注释]  为数据表开始行列，备注内容只能存在于左上角，且备注行、列不能超过数据表最大行、列**
+
+1. ##### Obj
 
 ![image-20230102172036528](./assets/image-20230102172036528.png)
 
-**2. Enum**
+##### 2. Enum
 
 ![image-20230102172155287](./assets/image-20230102172155287.png)
 
-**3. Table**
+##### 3. Table
 
 ![image-20230102172112635](./assets/image-20230102172112635.png)
 
@@ -31,27 +66,6 @@ https://github.com/iCryingCat/xlsx/releases/download/v3.0.1/xlsx.v3.0.1.zip
 
 **6. namespace::tblName 内嵌表 值为目标数据表的索引**
 
-## excel规范
-
-### xlsx文件命名
-
--   **[#] [首字字母大写+序号优先级] [xlsx文件]@命名空间**
-
--   **如M1-模型资源@res_model、T1-贴图资源@res_txture**
-
--   **以#开头忽略导出**
-
-### Sheet命名
-
--   **[全英文]、[无空格]、[无特殊符号]、[驼峰命名]**
--   **类型-表名：比如: city、user**
-
--   **以#开头忽略导出**
-
-### 数据表
-
--   **以：##[表类型]–[表注释]  为数据表开始行列，备注内容只能存在于左上角，且备注行、列不能超过数据表最大行、列**
-
 ## Example
 
 #### ./xlsx/C1-测试.xlsx
@@ -63,6 +77,8 @@ https://github.com/iCryingCat/xlsx/releases/download/v3.0.1/xlsx.v3.0.1.zip
 ![image-20230102172133960](./assets/image-20230102172133960.png)
 
 ![image-20230102172155287](./assets/image-20230102172155287.png)
+
+### 导出结果
 
 ### Lua
 
